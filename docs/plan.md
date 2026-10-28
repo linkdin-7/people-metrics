@@ -46,7 +46,7 @@ Indexes: department_id, country, currency, annual_salary, (last_name, first_name
 
 List parameters: `page`, `page_size`, `q`, `country`, `currency`, `department`, `job_title`, `min_salary`, `max_salary`, `sort`.
 
-Errors use `{code, message, details}`: 422 validation, 404 missing, 409 duplicate email or department.
+Errors use DRF's standard format: 400 with per-field messages for invalid data, 404 when not found, and 409 with a `detail` message for a duplicate email or department.
 
 ## Currency rule
 

@@ -14,12 +14,38 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.auth",
+    "rest_framework",
+    "django_filters",
+    "drf_spectacular",
     "employees",
 ]
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "People Metrics API",
+    "DESCRIPTION": "Employee salary management API.",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+}
+
+REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    "DEFAULT_AUTHENTICATION_CLASSES": [],
+    "DEFAULT_PERMISSION_CLASSES": [],
+    "UNAUTHENTICATED_USER": None,
+    "EXCEPTION_HANDLER": "employees.views.api_exception_handler",
+}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.common.CommonMiddleware",
+]
+
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "APP_DIRS": True,
+    }
 ]
 
 ROOT_URLCONF = "config.urls"

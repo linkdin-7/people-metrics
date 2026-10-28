@@ -2,8 +2,14 @@ import datetime
 import itertools
 
 import pytest
+from rest_framework.test import APIClient
 
 from employees.models import Department, Employee
+
+
+@pytest.fixture
+def api_client() -> APIClient:
+    return APIClient()
 
 
 @pytest.fixture
@@ -30,3 +36,13 @@ def build_employee(engineering):
         return Employee(**fields)
 
     return build
+
+
+@pytest.fixture
+def create_employee(build_employee):
+    def create(**overrides) -> Employee:
+        employee = build_employee(**overrides)
+        employee.save()
+        return employee
+
+    return create

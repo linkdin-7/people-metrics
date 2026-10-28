@@ -35,4 +35,6 @@ The ISO 3166 list includes territories, and a few have no single clear currency 
 - Lists are always paginated on the server, and filtered and sorted columns are indexed: department, country, currency, salary and name.
 - Aggregates are computed in the database, and the browser only receives the results.
 - The seed inserts in batches of 1,000 inside one transaction. Measured on a development machine: 10,000 employees in about 2 seconds.
-- Target: list and insight responses well under 500 ms at 10,000 rows. This is measured and recorded here once the endpoints exist.
+- Target: list and insight responses well under 500 ms at 10,000 rows.
+- Measured on the seeded 10,000 rows (development machine, in-process, warm): employee list about 15 ms, name or email search about 40 ms, filters with sorting 10 to 15 ms, lookups about 6 ms. The first request after a process starts takes about 270 ms of one-off warm-up.
+- Name search uses a plain case-insensitive match, which scans the table. At 10,000 rows that is about 40 ms, so a trigram index is not needed yet. It would be the next step if the table grew by orders of magnitude.
