@@ -23,7 +23,7 @@ def build_employee(engineering):
             "department": engineering,
             "job_title": "Software Engineer",
             "country": "IN",
-            "annual_salary": 1_200_000,
+            "annual_salary": 1200000,
             "hire_date": datetime.date(2022, 4, 1),
         }
         fields.update(overrides)

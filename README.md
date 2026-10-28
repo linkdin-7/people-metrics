@@ -37,7 +37,8 @@ Requires Python 3.12 or newer and PostgreSQL (developed on Python 3.13 and Postg
    ```
 3. Copy `.env.example` to `.env`, then set `SECRET_KEY` and `DATABASE_URL`.
 4. Create the tables: `python manage.py migrate`
-5. Run the tests: `pytest`
+5. Seed 10,000 synthetic employees: `python manage.py seed_employees`. The data is fictional and deterministic. Options: `--count`, `--seed`, and `--reset` to replace existing employees (without it, the command refuses to run on a non-empty table).
+6. Run the tests: `pytest`
 
 The country list in `employees/data/countries.json` is committed. To regenerate it from the ISO data, run `python scripts/generate_countries.py`.
 

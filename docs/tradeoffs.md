@@ -34,5 +34,5 @@ The ISO 3166 list includes territories, and a few have no single clear currency 
 
 - Lists are always paginated on the server, and filtered and sorted columns are indexed: department, country, currency, salary and name.
 - Aggregates are computed in the database, and the browser only receives the results.
-- The seed inserts in batches and is timed against the 10,000-row target.
+- The seed inserts in batches of 1,000 inside one transaction. Measured on a development machine: 10,000 employees in about 2 seconds.
 - Target: list and insight responses well under 500 ms at 10,000 rows. This is measured and recorded here once the endpoints exist.
