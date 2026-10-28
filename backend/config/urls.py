@@ -5,6 +5,8 @@ from rest_framework.routers import SimpleRouter
 from employees.views import (
     BreakdownView,
     DepartmentViewSet,
+    DistributionView,
+    EarnersView,
     EmployeeViewSet,
     LookupsView,
     SummaryView,
@@ -19,6 +21,8 @@ insights_urls = [
     path("by-country", BreakdownView.as_view(group_by="country")),
     path("by-department", BreakdownView.as_view(group_by="department")),
     path("by-job-title", BreakdownView.as_view(group_by="job_title")),
+    path("distribution", DistributionView.as_view()),
+    path("earners", EarnersView.as_view()),
 ]
 
 urlpatterns = [

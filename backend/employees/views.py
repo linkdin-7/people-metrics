@@ -14,10 +14,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView, exception_handler
 
 from employees.countries import list_countries, list_currencies
-from employees.insights import salary_stats
+from employees.insights import salary_distribution, salary_stats, top_earners
 from employees.models import Department, Employee
 from employees.serializers import (
     DepartmentSerializer,
+    DistributionQuerySerializer,
+    DistributionSerializer,
+    EarnersQuerySerializer,
     EmployeeSerializer,
     SalaryStatsSerializer,
     SummarySerializer,
@@ -133,6 +136,32 @@ class BreakdownView(InsightsView):
     @extend_schema(responses=SalaryStatsSerializer(many=True))
     def get(self, request) -> Response:
         return Response(salary_stats(self.filtered_employees(), self.group_by))
+
+
+class DistributionView(InsightsView):
+    serializer_class = DistributionSerializer
+
+    @extend_schema(parameters=[DistributionQuerySerializer])
+    def get(self, request) -> Response:
+        query = DistributionQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        distribution = salary_distribution(
+            self.filtered_employees(), query.validated_data["buckets"]
+        )
+        return Response({"currency": query.validated_data["currency"].upper(), **distribution})
+
+
+class EarnersView(InsightsView):
+    serializer_class = EmployeeSerializer
+
+    @extend_schema(parameters=[EarnersQuerySerializer], responses=EmployeeSerializer(many=True))
+    def get(self, request) -> Response:
+        query = EarnersQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        earners = top_earners(
+            self.filtered_employees(), query.validated_data["order"], query.validated_data["limit"]
+        )
+        return Response(EmployeeSerializer(earners, many=True).data)
 
 
 LOOKUPS_RESPONSE = inline_serializer(

@@ -40,7 +40,9 @@ Indexes: department_id, country, currency, annual_salary, (last_name, first_name
 | GET | `/departments` | List departments |
 | POST | `/departments` | Create a department; the name is normalized, a duplicate returns 409 |
 | GET | `/lookups` | Countries with default currency, currencies, departments and distinct job titles for forms and filters |
-| GET | `/insights/summary`, `/by-country`, `/by-department`, `/by-job-title`, `/distribution` | Aggregated pay figures, always split by currency |
+| GET | `/insights/summary`, `/by-country`, `/by-department`, `/by-job-title` | Aggregated pay figures, always split by currency |
+| GET | `/insights/distribution` | Salary histogram for one currency (`currency` required, `buckets` 1 to 50) |
+| GET | `/insights/earners` | Highest or lowest paid employees for one currency (`currency` required, `order`, `limit` up to 100) |
 | POST | `/insights/ask` | One question in, `{status, interpretation, answer, columns, rows, suggestions}` out |
 | GET | `/health` | Health check, exempt from basic auth |
 

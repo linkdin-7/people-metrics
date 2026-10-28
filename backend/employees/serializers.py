@@ -40,6 +40,29 @@ class SummarySerializer(serializers.Serializer):
     salary_by_currency = SalaryStatsSerializer(many=True)
 
 
+class SalaryBucketSerializer(serializers.Serializer):
+    min_salary = serializers.IntegerField()
+    max_salary = serializers.IntegerField()
+    headcount = serializers.IntegerField()
+
+
+class DistributionSerializer(serializers.Serializer):
+    currency = serializers.CharField()
+    bucket_width = serializers.IntegerField()
+    buckets = SalaryBucketSerializer(many=True)
+
+
+class DistributionQuerySerializer(serializers.Serializer):
+    currency = serializers.CharField()
+    buckets = serializers.IntegerField(min_value=1, max_value=50, default=10)
+
+
+class EarnersQuerySerializer(serializers.Serializer):
+    currency = serializers.CharField()
+    order = serializers.ChoiceField(choices=["highest", "lowest"], default="highest")
+    limit = serializers.IntegerField(min_value=1, max_value=100, default=10)
+
+
 class EmployeeSerializer(serializers.ModelSerializer):
     department = serializers.PrimaryKeyRelatedField(queryset=Department.objects.all())
     department_name = serializers.CharField(source="department.name", read_only=True)
