@@ -8,13 +8,20 @@ from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import mixins, serializers, viewsets
 from rest_framework.filters import OrderingFilter
+from rest_framework.generics import GenericAPIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView, exception_handler
 
 from employees.countries import list_countries, list_currencies
+from employees.insights import salary_stats
 from employees.models import Department, Employee
-from employees.serializers import DepartmentSerializer, EmployeeSerializer
+from employees.serializers import (
+    DepartmentSerializer,
+    EmployeeSerializer,
+    SalaryStatsSerializer,
+    SummarySerializer,
+)
 
 def api_exception_handler(exception, context):
     # Two simultaneous requests can pass the duplicate check and hit the database constraint.
@@ -94,6 +101,38 @@ class DepartmentViewSet(
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
     pagination_class = None
+
+
+class InsightsView(GenericAPIView):
+    queryset = Employee.objects.all()
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = EmployeeFilter
+    pagination_class = None
+
+    def filtered_employees(self):
+        return self.filter_queryset(self.get_queryset())
+
+
+class SummaryView(InsightsView):
+    serializer_class = SummarySerializer
+
+    def get(self, request) -> Response:
+        employees = self.filtered_employees()
+        return Response(
+            {
+                "headcount": employees.count(),
+                "salary_by_currency": salary_stats(employees),
+            }
+        )
+
+
+class BreakdownView(InsightsView):
+    serializer_class = SalaryStatsSerializer
+    group_by = "country"
+
+    @extend_schema(responses=SalaryStatsSerializer(many=True))
+    def get(self, request) -> Response:
+        return Response(salary_stats(self.filtered_employees(), self.group_by))
 
 
 LOOKUPS_RESPONSE = inline_serializer(

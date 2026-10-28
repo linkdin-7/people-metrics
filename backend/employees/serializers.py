@@ -25,6 +25,21 @@ class DepartmentSerializer(serializers.ModelSerializer):
         return name
 
 
+class SalaryStatsSerializer(serializers.Serializer):
+    group = serializers.CharField(required=False)
+    currency = serializers.CharField()
+    headcount = serializers.IntegerField()
+    min_salary = serializers.IntegerField()
+    median_salary = serializers.FloatField()
+    average_salary = serializers.FloatField()
+    max_salary = serializers.IntegerField()
+
+
+class SummarySerializer(serializers.Serializer):
+    headcount = serializers.IntegerField()
+    salary_by_currency = SalaryStatsSerializer(many=True)
+
+
 class EmployeeSerializer(serializers.ModelSerializer):
     department = serializers.PrimaryKeyRelatedField(queryset=Department.objects.all())
     department_name = serializers.CharField(source="department.name", read_only=True)

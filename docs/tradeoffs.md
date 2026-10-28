@@ -37,4 +37,5 @@ The ISO 3166 list includes territories, and a few have no single clear currency 
 - The seed inserts in batches of 1,000 inside one transaction. Measured on a development machine: 10,000 employees in about 2 seconds.
 - Target: list and insight responses well under 500 ms at 10,000 rows.
 - Measured on the seeded 10,000 rows (development machine, in-process, warm): employee list about 15 ms, name or email search about 40 ms, filters with sorting 10 to 15 ms, lookups about 6 ms. The first request after a process starts takes about 270 ms of one-off warm-up.
+- Insights are computed in one grouped SQL query each, with the median as Postgres `percentile_cont`. On the seeded rows: summary about 14 ms, breakdown by country about 14 ms, by department about 20 ms, by job title about 26 ms. The database figures were cross-checked against an independent Python calculation for all 14 currencies.
 - Name search uses a plain case-insensitive match, which scans the table. At 10,000 rows that is about 40 ms, so a trigram index is not needed yet. It would be the next step if the table grew by orders of magnitude.
