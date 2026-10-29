@@ -31,6 +31,12 @@ The ISO 3166 list includes territories, and a few have no single clear currency 
 | Shared basic auth from environment variables, failing closed | Full user accounts | One persona. Keeps salary data off an open URL without building an auth system. | Not real authentication. Listed as roadmap. |
 | Ask a Question uses a rules-based parser over the database | An LLM that interprets the question | Deterministic, exact and testable, with no external dependency or secrets. | Only a defined set of question patterns is understood. Unsupported questions get examples instead of a guess. |
 
+## Ask a Question
+
+- **Fixed rules.** A parser turns the question into a small structured query, and the database calculates the answer using the same code as the Insights page. The same question always gives the same number.
+- **Nothing is guessed.** Words it doesn't understand are reported, with a "did you mean" when possible, never silently ignored. Salary rankings need one currency, so currencies are never mixed.
+- **Cost:** only a small set of English patterns is understood (counts, median, average, lowest, highest, grouping, a few filters). Anything else gets examples.
+
 ## Performance
 
 - Lists are always paginated on the server, and filtered and sorted columns are indexed: department, country, currency, salary and name.

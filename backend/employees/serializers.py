@@ -25,6 +25,28 @@ class DepartmentSerializer(serializers.ModelSerializer):
         return name
 
 
+class QuestionField(serializers.CharField):
+    def to_internal_value(self, data):
+        if not isinstance(data, str):
+            self.fail("invalid")
+        return super().to_internal_value(data)
+
+
+class AskQuestionSerializer(serializers.Serializer):
+    question = QuestionField(max_length=300)
+
+
+class AskAnswerSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=["answered", "needs_clarification", "unsupported"])
+    question = serializers.CharField()
+    interpretation = serializers.ListField(child=serializers.DictField(child=serializers.CharField()))
+    answer = serializers.CharField()
+    notes = serializers.ListField(child=serializers.CharField())
+    columns = serializers.ListField(child=serializers.DictField(child=serializers.CharField()))
+    rows = serializers.ListField(child=serializers.DictField())
+    suggestions = serializers.ListField(child=serializers.CharField())
+
+
 class SalaryStatsSerializer(serializers.Serializer):
     group = serializers.CharField(required=False)
     currency = serializers.CharField()

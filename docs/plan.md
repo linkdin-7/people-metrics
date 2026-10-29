@@ -45,7 +45,7 @@ Indexes: department_id, country, currency, annual_salary, (last_name, first_name
 | GET | `/insights/summary`, `/by-country`, `/by-department`, `/by-job-title` | Aggregated pay figures, always split by currency |
 | GET | `/insights/distribution` | Salary histogram for one currency (`currency` required, `buckets` 1 to 50) |
 | GET | `/insights/earners` | Highest or lowest paid employees for one currency (`currency` required, `order`, `limit` up to 100) |
-| POST | `/insights/ask` | One question in, `{status, interpretation, answer, columns, rows, suggestions}` out |
+| POST | `/insights/ask` | One question in (`{question}`, up to 300 characters), out come `{status, question, interpretation, answer, notes, columns, rows, suggestions}`. `status` is `answered`, `needs_clarification` or `unsupported`, and all three return 200 |
 | GET | `/health` | Health check, exempt from basic auth |
 
 List parameters: `page`, `page_size`, `q`, `country`, `currency`, `department`, `job_title`, `min_salary`, `max_salary`, `sort`.

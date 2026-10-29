@@ -18,10 +18,13 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView, exception_handler
 
+from employees.ask import answer_question
 from employees.countries import list_countries, list_currencies
 from employees.insights import salary_distribution, salary_stats, top_earners
 from employees.models import Department, Employee
 from employees.serializers import (
+    AskAnswerSerializer,
+    AskQuestionSerializer,
     Conflict,
     DepartmentSerializer,
     DistributionQuerySerializer,
@@ -197,6 +200,16 @@ class EarnersView(InsightsView):
             self.filtered_employees(), query.validated_data["order"], query.validated_data["limit"]
         )
         return Response(EmployeeSerializer(earners, many=True).data)
+
+
+class AskView(GenericAPIView):
+    serializer_class = AskQuestionSerializer
+
+    @extend_schema(request=AskQuestionSerializer, responses=AskAnswerSerializer)
+    def post(self, request) -> Response:
+        question = AskQuestionSerializer(data=request.data)
+        question.is_valid(raise_exception=True)
+        return Response(answer_question(question.validated_data["question"]))
 
 
 LOOKUPS_RESPONSE = inline_serializer(

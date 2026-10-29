@@ -3,6 +3,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework.routers import SimpleRouter
 
 from employees.views import (
+    AskView,
     BreakdownView,
     DepartmentViewSet,
     DistributionView,
@@ -24,6 +25,7 @@ insights_urls = [
     path("by-job-title", BreakdownView.as_view(group_by="job_title")),
     path("distribution", DistributionView.as_view()),
     path("earners", EarnersView.as_view()),
+    path("ask", AskView.as_view()),
 ]
 
 urlpatterns = [
