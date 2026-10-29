@@ -7,6 +7,11 @@ from rest_framework.test import APIClient
 from employees.models import Department, Employee
 
 
+@pytest.fixture(autouse=True)
+def open_access(settings) -> None:
+    settings.BASIC_AUTH_REQUIRED = False
+
+
 @pytest.fixture
 def api_client() -> APIClient:
     return APIClient()

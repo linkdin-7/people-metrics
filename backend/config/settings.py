@@ -36,7 +36,12 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "employees.views.api_exception_handler",
 }
 
+BASIC_AUTH_USERNAME = env("BASIC_AUTH_USERNAME", default="")
+BASIC_AUTH_PASSWORD = env("BASIC_AUTH_PASSWORD", default="")
+BASIC_AUTH_REQUIRED = not DEBUG
+
 MIDDLEWARE = [
+    "config.middleware.BasicAuthMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.common.CommonMiddleware",
 ]

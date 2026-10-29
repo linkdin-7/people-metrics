@@ -18,10 +18,10 @@ Configuration comes from environment variables, read from `backend/.env`. Real v
 | Variable | Purpose |
 |---|---|
 | `SECRET_KEY` | Django secret key, required, no default |
-| `DEBUG` | `true` or `false`, defaults to `false` |
+| `DEBUG` | `true` or `false`, defaults to `false`. Basic auth is enforced whenever it is `false`, so use `true` only for local development |
 | `ALLOWED_HOSTS` | Comma-separated host names |
 | `DATABASE_URL` | PostgreSQL connection URL |
-| `BASIC_AUTH_USERNAME`, `BASIC_AUTH_PASSWORD` | Shared login for the deployed site, added with the auth phase |
+| `BASIC_AUTH_USERNAME`, `BASIC_AUTH_PASSWORD` | Shared login for the deployed site. If auth is enforced and either is empty, every request is refused with 503 |
 
 ## Backend setup
 
