@@ -188,6 +188,7 @@ LOOKUPS_RESPONSE = inline_serializer(
         "currencies": serializers.ListField(child=serializers.CharField()),
         "departments": DepartmentSerializer(many=True),
         "job_titles": serializers.ListField(child=serializers.CharField()),
+        "countries_in_use": serializers.ListField(child=serializers.CharField()),
     },
 )
 
@@ -206,5 +207,8 @@ class LookupsView(APIView):
                 "currencies": list_currencies(),
                 "departments": DepartmentSerializer(Department.objects.all(), many=True).data,
                 "job_titles": list(job_titles),
+                "countries_in_use": list(
+                    Employee.objects.order_by("country").values_list("country", flat=True).distinct()
+                ),
             }
         )

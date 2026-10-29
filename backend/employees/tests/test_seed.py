@@ -6,7 +6,13 @@ from django.core.management.base import CommandError
 
 from employees.countries import default_currency_for, is_valid_country
 from employees.models import Department, Employee
-from employees.seed import COUNTRY_PROFILES, SeedError, seed_employees
+from employees.seed import (
+    COUNTRY_PROFILES,
+    FIRST_NAMES,
+    LAST_NAMES,
+    SeedError,
+    seed_employees,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -48,6 +54,19 @@ def test_emails_are_unique_and_use_the_reserved_example_domain():
 
     assert len(set(emails)) == len(emails)
     assert all(email.endswith("@example.com") for email in emails)
+
+
+def test_name_lists_cover_ten_thousand_distinct_people():
+    assert len(set(FIRST_NAMES)) == len(FIRST_NAMES)
+    assert len(set(LAST_NAMES)) == len(LAST_NAMES)
+    assert len(FIRST_NAMES) * len(LAST_NAMES) >= 10000
+
+
+def test_full_names_do_not_repeat():
+    seed_employees(count=2000, seed=1)
+
+    full_names = list(Employee.objects.values_list("first_name", "last_name"))
+    assert len(set(full_names)) == len(full_names)
 
 
 def test_employees_are_spread_across_countries_and_departments():

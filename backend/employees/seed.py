@@ -59,17 +59,30 @@ JOB_TITLES = {
     "Operations Manager": ("Operations", 1.4),
 }
 
+# 100 first names x 100 last names = 10,000 distinct full names.
 FIRST_NAMES = [
-    "Aarav", "Maya", "Liam", "Emma", "Noah", "Olivia", "Arjun", "Priya", "Lucas",
-    "Sofia", "Mateo", "Chloe", "Kenji", "Yuki", "Omar", "Layla", "Ethan", "Zara",
-    "Nikhil", "Ananya", "Felix", "Hannah", "Diego", "Isabella", "Thabo", "Amara",
-    "Jakub", "Anna", "Erik", "Ingrid",
+    "Aarav", "Aditi", "Adwoa", "Ahmed", "Aiko", "Alejandro", "Amara", "Amelia", "Ana", "Ananya",
+    "Andrei", "Anika", "Arjun", "Astrid", "Ayesha", "Bao", "Beatriz", "Benjamin", "Camila", "Carlos",
+    "Chen", "Chiara", "Chloe", "Daniel", "Dario", "Deepa", "Diego", "Dmitri", "Elena", "Elif",
+    "Emeka", "Emma", "Erik", "Esther", "Ethan", "Fatima", "Felix", "Freya", "Gabriel", "Grace",
+    "Hana", "Hannah", "Hiroshi", "Ibrahim", "Ines", "Ingrid", "Isabella", "Ivan", "Jakub", "James",
+    "Javier", "Jin", "Joao", "Kai", "Kavya", "Kenji", "Khalid", "Laila", "Lars", "Layla",
+    "Leon", "Lina", "Lucas", "Luis", "Maria", "Mateo", "Maya", "Mei", "Mohammed", "Nadia",
+    "Naomi", "Nikhil", "Noah", "Nora", "Olivia", "Omar", "Oscar", "Pablo", "Priya", "Rafael",
+    "Rahul", "Rania", "Ravi", "Rosa", "Sakura", "Samuel", "Sara", "Sofia", "Sven", "Tariq",
+    "Thabo", "Theo", "Valentina", "Vikram", "Wei", "Yara", "Yusuf", "Zainab", "Zara", "Zoe",
 ]
 LAST_NAMES = [
-    "Sharma", "Patel", "Smith", "Johnson", "Garcia", "Martinez", "Mueller",
-    "Schneider", "Tanaka", "Sato", "Khan", "Hassan", "Silva", "Santos", "Dubois",
-    "Martin", "Kowalski", "Nowak", "Andersson", "Larsson", "Nguyen", "Singh",
-    "Brown", "Wilson", "Taylor", "Rossi", "Ferrari", "Okafor", "Dlamini", "Tan",
+    "Abara", "Adeyemi", "Alvarez", "Andersson", "Bakker", "Banerjee", "Becker", "Bianchi", "Brown", "Castillo",
+    "Chen", "Costa", "Cruz", "Dahl", "Das", "Davies", "Dlamini", "Dubois", "Eriksson", "Fernandes",
+    "Fischer", "Fontaine", "Garcia", "Gomez", "Gupta", "Haddad", "Hansen", "Hassan", "Herrera", "Hoffmann",
+    "Huang", "Ibrahim", "Ito", "Iyer", "Jansen", "Jensen", "Johnson", "Kaur", "Khan", "Kim",
+    "Kowalski", "Kumar", "Larsson", "Laurent", "Lee", "Lewandowski", "Lim", "Lopez", "Martin", "Martinez",
+    "Mehta", "Mendes", "Moreau", "Mueller", "Murphy", "Nair", "Nakamura", "Ng", "Nguyen", "Nielsen",
+    "Novak", "Nowak", "Okafor", "Oliveira", "Ortiz", "Park", "Patel", "Pereira", "Petrov", "Popescu",
+    "Rahman", "Ramos", "Reddy", "Ricci", "Rodriguez", "Romano", "Rossi", "Sato", "Schmidt", "Schneider",
+    "Sharma", "Silva", "Singh", "Smith", "Suzuki", "Tan", "Tanaka", "Taylor", "Torres", "Visser",
+    "Wagner", "Wang", "Weber", "Williams", "Wilson", "Wong", "Yamamoto", "Yilmaz", "Zhang", "Zhou",
 ]
 
 FOREIGN_CURRENCY_SHARE = 0.02
@@ -88,10 +101,12 @@ def round_to_three_significant_digits(value: float) -> int:
 
 
 def build_employee(
-    rng: random.Random, number: int, departments: dict[str, Department]
+    rng: random.Random,
+    number: int,
+    full_name: tuple[str, str],
+    departments: dict[str, Department],
 ) -> Employee:
-    first_name = rng.choice(FIRST_NAMES)
-    last_name = rng.choice(LAST_NAMES)
+    first_name, last_name = full_name
     job_title = rng.choice(list(JOB_TITLES))
     department_name, multiplier = JOB_TITLES[job_title]
     country = rng.choices(
@@ -129,6 +144,9 @@ def seed_employees(count: int = 10000, seed: int = 42, reset: bool = False) -> i
         )
 
     rng = random.Random(seed)
+    # Deal names like shuffled cards, so no full name repeats until all combinations are used.
+    full_names = [(first, last) for first in FIRST_NAMES for last in LAST_NAMES]
+    rng.shuffle(full_names)
     department_names = {department for department, _ in JOB_TITLES.values()}
     with transaction.atomic():
         Employee.objects.all().delete()
@@ -137,7 +155,10 @@ def seed_employees(count: int = 10000, seed: int = 42, reset: bool = False) -> i
             for name in sorted(department_names)
         }
         employees = [
-            build_employee(rng, number, departments) for number in range(1, count + 1)
+            build_employee(
+                rng, number, full_names[(number - 1) % len(full_names)], departments
+            )
+            for number in range(1, count + 1)
         ]
         Employee.objects.bulk_create(employees, batch_size=BATCH_SIZE)
     return len(employees)

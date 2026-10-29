@@ -14,6 +14,24 @@ def normalize_name(value: str) -> str:
     return " ".join(value.split())
 
 
+NAME_PUNCTUATION = set(" '’-.")
+
+
+def validate_person_name(value: str) -> None:
+    name = value.strip()
+    is_valid = (
+        len(name) >= 2
+        and name[0].isalpha()
+        and all(character.isalpha() or character in NAME_PUNCTUATION for character in name)
+    )
+    if not is_valid:
+        raise ValidationError(
+            "Use at least 2 characters, starting with a letter. Only letters, spaces, "
+            "hyphens, apostrophes and full stops are allowed.",
+            code="invalid_name",
+        )
+
+
 def validate_country_code(value: str) -> None:
     if not is_valid_country(value):
         raise ValidationError(
@@ -52,8 +70,8 @@ class Department(models.Model):
 
 
 class Employee(models.Model):
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
+    first_name = models.CharField(max_length=100, validators=[validate_person_name])
+    last_name = models.CharField(max_length=100, validators=[validate_person_name])
     email = models.EmailField()
     department = models.ForeignKey(
         Department, on_delete=models.PROTECT, related_name="employees"

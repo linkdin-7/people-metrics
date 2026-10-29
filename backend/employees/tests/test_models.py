@@ -83,6 +83,21 @@ def test_names_and_job_title_are_whitespace_normalized(build_employee):
     )
 
 
+@pytest.mark.parametrize(
+    "name", ["Ng", "Li", "O'Brien", "O’Neil", "Jean-Luc", "José", "Mary Ann", "St. John", "Zoë"]
+)
+def test_real_world_names_are_accepted(build_employee, name):
+    build_employee(first_name=name, last_name=name).full_clean()
+
+
+@pytest.mark.parametrize("name", [".", "..", "A", "1Asha", "Asha3", "-Lee", "@@", "Asha!"])
+def test_names_must_be_at_least_two_characters_of_letters(build_employee, name):
+    with pytest.raises(ValidationError) as error:
+        build_employee(first_name=name, last_name=name).full_clean()
+
+    assert {"first_name", "last_name"} <= set(error.value.message_dict)
+
+
 @pytest.mark.parametrize("salary", [0, -1])
 def test_salary_must_be_positive(build_employee, salary):
     with pytest.raises(ValidationError) as error:

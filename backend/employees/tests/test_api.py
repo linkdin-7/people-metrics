@@ -112,6 +112,8 @@ def test_country_without_a_default_currency_needs_an_explicit_one(
         ({"email": "not-an-email"}, "email"),
         ({"hire_date": "2022-13-45"}, "hire_date"),
         ({"first_name": ""}, "first_name"),
+        ({"first_name": "."}, "first_name"),
+        ({"last_name": ".."}, "last_name"),
         ({"department": 999999}, "department"),
     ],
 )
@@ -402,3 +404,11 @@ def test_lookups_list_countries_currencies_departments_and_job_titles(
     assert "INR" in body["currencies"]
     assert [department["name"] for department in body["departments"]] == ["Engineering"]
     assert body["job_titles"] == ["Accountant", "Software Engineer"]
+    assert body["countries_in_use"] == ["IN"]
+
+
+def test_lookups_list_each_country_in_use_once_in_code_order(api_client, create_employee):
+    for country in ("US", "IN", "US", "DE"):
+        create_employee(country=country)
+
+    assert api_client.get(LOOKUPS).json()["countries_in_use"] == ["DE", "IN", "US"]
