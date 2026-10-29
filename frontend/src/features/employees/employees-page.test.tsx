@@ -1,17 +1,23 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { describe, expect, test, vi } from 'vitest'
 
+import { ThemeProvider } from '@/components/theme'
+import { Toaster } from '@/components/ui/sonner'
 import { EmployeesPage } from '@/features/employees/employees-page'
 import type { Employee, Lookups } from '@/lib/api'
 
 const LOOKUPS: Lookups = {
   countries: [
+    { code: 'IO', name: 'British Indian Ocean Territory', currency: 'USD' },
     { code: 'DE', name: 'Germany', currency: 'EUR' },
+    { code: 'HM', name: 'Heard Island and McDonald Islands', currency: 'AUD' },
     { code: 'IN', name: 'India', currency: 'INR' },
+    { code: 'ID', name: 'Indonesia', currency: 'IDR' },
   ],
+  countries_in_use: ['DE', 'IN'],
   currencies: ['EUR', 'INR', 'USD'],
   departments: [
     { id: 1, name: 'Engineering' },
@@ -46,14 +52,37 @@ function json(body: unknown, status = 200) {
   })
 }
 
-type ApiOptions = { employees?: Employee[]; count?: number; failEmployees?: boolean }
+type Write = { method: string; path: string; body: Record<string, unknown> }
 
-function mockApi({ employees = [employee()], count, failEmployees = false }: ApiOptions = {}) {
+type ApiOptions = {
+  employees?: Employee[]
+  count?: number
+  failEmployees?: boolean
+  writeResponse?: (write: Write) => Response
+}
+
+function savedEmployee(write: Write) {
+  return json({ ...employee(), ...write.body, id: 99 }, write.method === 'POST' ? 201 : 200)
+}
+
+function mockApi({
+  employees = [employee()],
+  count,
+  failEmployees = false,
+  writeResponse = savedEmployee,
+}: ApiOptions = {}) {
   const employeeQueries: URLSearchParams[] = []
+  const writes: Write[] = []
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (input: string) => {
+    vi.fn(async (input: string, init?: RequestInit) => {
       const url = new URL(input, 'http://localhost')
+      const method = init?.method ?? 'GET'
+      if (method !== 'GET') {
+        const write = { method, path: url.pathname, body: JSON.parse(String(init?.body ?? '{}')) }
+        writes.push(write)
+        return writeResponse(write)
+      }
       if (url.pathname === '/api/v1/lookups') {
         return json(LOOKUPS)
       }
@@ -69,6 +98,7 @@ function mockApi({ employees = [employee()], count, failEmployees = false }: Api
   )
   return {
     employeeQueries,
+    writes,
     lastQuery: () => employeeQueries[employeeQueries.length - 1],
   }
 }
@@ -78,11 +108,14 @@ function renderPage(path = '/employees') {
   const user = userEvent.setup()
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route path="/employees" element={<EmployeesPage />} />
-        </Routes>
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route path="/employees" element={<EmployeesPage />} />
+          </Routes>
+        </MemoryRouter>
+        <Toaster />
+      </ThemeProvider>
     </QueryClientProvider>,
   )
   return user
@@ -240,5 +273,249 @@ describe('employee list', () => {
     await user.click(screen.getByRole('button', { name: 'Try again' }))
 
     await waitFor(() => expect(api.employeeQueries.length).toBe(requestsBefore + 1))
+  })
+})
+
+type User = ReturnType<typeof userEvent.setup>
+
+async function openNewEmployeeForm(user: User) {
+  await screen.findByText('Asha Rao')
+  await user.click(screen.getByRole('button', { name: 'Add employee' }))
+  return screen.findByRole('dialog', { name: 'New employee' })
+}
+
+async function pick(user: User, panel: HTMLElement, field: string, option: string) {
+  await user.click(within(panel).getByRole('combobox', { name: field }))
+  await user.click(await screen.findByRole('option', { name: option }))
+}
+
+async function fillNewEmployee(user: User, panel: HTMLElement) {
+  await user.type(within(panel).getByLabelText('First name'), 'Grace')
+  await user.type(within(panel).getByLabelText('Last name'), 'Okafor')
+  await user.type(within(panel).getByLabelText('Email'), 'grace.okafor@example.com')
+  await pick(user, panel, 'Department', 'Sales')
+  await user.type(within(panel).getByLabelText('Job title'), 'Account Executive')
+  fireEvent.change(within(panel).getByLabelText('Hire date'), { target: { value: '2024-03-15' } })
+  await pick(user, panel, 'Country', 'India')
+  await user.type(within(panel).getByLabelText('Annual salary'), '1500000')
+}
+
+describe('adding and editing', () => {
+  test('saving an empty form explains what is missing and sends nothing', async () => {
+    const api = mockApi()
+    const user = renderPage()
+    const panel = await openNewEmployeeForm(user)
+
+    await user.click(within(panel).getByRole('button', { name: 'Add employee' }))
+
+    for (const message of [
+      'Enter a first name',
+      'Enter a last name',
+      'Enter an email address',
+      'Choose a department',
+      'Enter a job title',
+      'Enter a hire date',
+      'Choose a country',
+      'Enter an annual salary',
+    ]) {
+      expect(within(panel).getByText(message)).toBeInTheDocument()
+    }
+    expect(within(panel).getByLabelText('First name')).toHaveAttribute('aria-invalid', 'true')
+    expect(api.writes).toHaveLength(0)
+  })
+
+  test('a complete new employee is saved with the country currency and the list refreshes', async () => {
+    const api = mockApi()
+    const user = renderPage()
+    const panel = await openNewEmployeeForm(user)
+
+    await fillNewEmployee(user, panel)
+    expect(within(panel).getByRole('combobox', { name: 'Currency' })).toHaveTextContent('INR')
+    expect(within(panel).getByText('₹1,500,000 per year')).toBeInTheDocument()
+    const listRequestsBefore = api.employeeQueries.length
+    await user.click(within(panel).getByRole('button', { name: 'Add employee' }))
+
+    await waitFor(() => expect(api.writes).toHaveLength(1))
+    expect(api.writes[0]).toEqual({
+      method: 'POST',
+      path: '/api/v1/employees',
+      body: {
+        first_name: 'Grace',
+        last_name: 'Okafor',
+        email: 'grace.okafor@example.com',
+        department: 2,
+        job_title: 'Account Executive',
+        hire_date: '2024-03-15',
+        country: 'IN',
+        currency: 'INR',
+        annual_salary: 1500000,
+      },
+    })
+    expect(await screen.findByText('Added Grace Okafor')).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    await waitFor(() => expect(api.employeeQueries.length).toBeGreaterThan(listRequestsBefore))
+  })
+
+  test('a currency picked by hand is kept when the country changes', async () => {
+    mockApi()
+    const user = renderPage()
+    const panel = await openNewEmployeeForm(user)
+
+    await pick(user, panel, 'Country', 'India')
+    expect(within(panel).getByRole('combobox', { name: 'Currency' })).toHaveTextContent('INR')
+    await pick(user, panel, 'Currency', 'USD')
+    await pick(user, panel, 'Country', 'Germany')
+
+    expect(within(panel).getByRole('combobox', { name: 'Currency' })).toHaveTextContent('USD')
+    expect(within(panel).getByText(/differs from Germany's EUR/)).toBeInTheDocument()
+  })
+
+  test('invalid email and salary are explained once the field is left', async () => {
+    mockApi()
+    const user = renderPage()
+    const panel = await openNewEmployeeForm(user)
+
+    await user.type(within(panel).getByLabelText('Email'), 'not-an-email')
+    await user.type(within(panel).getByLabelText('Annual salary'), '0')
+    await user.tab()
+
+    expect(within(panel).getByText('Enter a valid email address')).toBeInTheDocument()
+    expect(within(panel).getByText('Enter a whole amount above zero')).toBeInTheDocument()
+    expect(within(panel).queryByText('Enter a first name')).not.toBeInTheDocument()
+  })
+
+  test('the country picker lists countries that already have employees first', async () => {
+    mockApi()
+    const user = renderPage()
+    const panel = await openNewEmployeeForm(user)
+
+    await user.click(within(panel).getByRole('combobox', { name: 'Country' }))
+
+    const inUse = await screen.findByRole('group', { name: 'Countries with employees' })
+    expect(within(inUse).getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'GermanyDE',
+      'IndiaIN',
+    ])
+    expect(within(screen.getByRole('group', { name: 'Other countries' })).getByRole('option', { name: /Indonesia/ })).toBeInTheDocument()
+  })
+
+  test('searching puts the best match first and ignores scattered letters', async () => {
+    mockApi()
+    const user = renderPage()
+    const panel = await openNewEmployeeForm(user)
+
+    await user.click(within(panel).getByRole('combobox', { name: 'Country' }))
+    await user.type(screen.getByPlaceholderText('Search country…'), 'india')
+
+    const results = screen.getAllByRole('option').map((option) => option.textContent)
+    expect(results).toEqual(['IndiaIN', 'British Indian Ocean TerritoryIO'])
+  })
+
+  test('the toolbar country filter only offers countries that have employees', async () => {
+    mockApi()
+    const user = renderPage()
+    await screen.findByText('Asha Rao')
+
+    await user.click(screen.getByRole('combobox', { name: 'Country' }))
+
+    const options = (await screen.findAllByRole('option')).map((option) => option.textContent)
+    expect(options).toEqual(['Any country', 'GermanyDE', 'IndiaIN'])
+  })
+
+  test('names must start with a letter and have at least two characters', async () => {
+    mockApi()
+    const user = renderPage()
+    const panel = await openNewEmployeeForm(user)
+
+    await user.type(within(panel).getByLabelText('First name'), '.')
+    await user.type(within(panel).getByLabelText('Last name'), 'A')
+    await user.tab()
+
+    expect(within(panel).getByText('Start with a letter and use only letters, spaces, hyphens or apostrophes')).toBeInTheDocument()
+    expect(within(panel).getByText('Use at least 2 characters')).toBeInTheDocument()
+
+    await user.clear(within(panel).getByLabelText('First name'))
+    await user.type(within(panel).getByLabelText('First name'), "O'Brien")
+    await user.clear(within(panel).getByLabelText('Last name'))
+    await user.type(within(panel).getByLabelText('Last name'), 'Ng')
+
+    expect(within(panel).queryByText(/Start with a letter|at least 2 characters/)).not.toBeInTheDocument()
+  })
+
+  test('hire dates are limited to 1950 onwards and at most 30 days ahead', async () => {
+    mockApi()
+    const user = renderPage()
+    const panel = await openNewEmployeeForm(user)
+    const hireDate = within(panel).getByLabelText('Hire date')
+    const daysFromToday = (days: number) => {
+      const date = new Date()
+      date.setDate(date.getDate() + days)
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+    }
+
+    expect(hireDate).toHaveAttribute('min', '1950-01-01')
+    expect(hireDate).toHaveAttribute('max', daysFromToday(30))
+
+    fireEvent.change(hireDate, { target: { value: daysFromToday(31) } })
+    fireEvent.blur(hireDate)
+    expect(within(panel).getByText('Hire date can be at most 30 days from today')).toBeInTheDocument()
+
+    fireEvent.change(hireDate, { target: { value: '1949-12-31' } })
+    expect(within(panel).getByText("Hire date can't be before 1 January 1950")).toBeInTheDocument()
+
+    fireEvent.change(hireDate, { target: { value: daysFromToday(30) } })
+    expect(within(panel).queryByText(/Hire date can/)).not.toBeInTheDocument()
+  })
+
+  test('a duplicate email is shown on the email field and the panel stays open', async () => {
+    mockApi({
+      writeResponse: () => json({ detail: 'An employee with this email already exists.' }, 409),
+    })
+    const user = renderPage()
+    const panel = await openNewEmployeeForm(user)
+
+    await fillNewEmployee(user, panel)
+    await user.click(within(panel).getByRole('button', { name: 'Add employee' }))
+
+    expect(await within(panel).findByText('An employee with this email already exists.')).toBeInTheDocument()
+    expect(within(panel).getByLabelText('Email')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByRole('dialog', { name: 'New employee' })).toBeInTheDocument()
+  })
+
+  test('server validation errors appear on the matching field', async () => {
+    mockApi({
+      writeResponse: () =>
+        json({ annual_salary: ['Ensure this value is less than or equal to 2147483647.'] }, 400),
+    })
+    const user = renderPage()
+    const panel = await openNewEmployeeForm(user)
+
+    await fillNewEmployee(user, panel)
+    await user.click(within(panel).getByRole('button', { name: 'Add employee' }))
+
+    expect(
+      await within(panel).findByText('Ensure this value is less than or equal to 2147483647.'),
+    ).toBeInTheDocument()
+  })
+
+  test('clicking an employee opens their details, and saving sends the change', async () => {
+    const api = mockApi()
+    const user = renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Edit Asha Rao' }))
+    const panel = await screen.findByRole('dialog', { name: 'Edit Asha Rao' })
+    expect(within(panel).getByLabelText('First name')).toHaveValue('Asha')
+    expect(within(panel).getByRole('combobox', { name: 'Department' })).toHaveTextContent('Engineering')
+    expect(within(panel).getByLabelText('Annual salary')).toHaveValue(1300000)
+
+    await user.clear(within(panel).getByLabelText('Annual salary'))
+    await user.type(within(panel).getByLabelText('Annual salary'), '1400000')
+    await user.click(within(panel).getByRole('button', { name: 'Save changes' }))
+
+    await waitFor(() => expect(api.writes).toHaveLength(1))
+    expect(api.writes[0].method).toBe('PATCH')
+    expect(api.writes[0].path).toBe('/api/v1/employees/1')
+    expect(api.writes[0].body).toMatchObject({ annual_salary: 1400000, currency: 'INR', department: 1 })
+    expect(await screen.findByText('Saved Asha Rao')).toBeInTheDocument()
   })
 })

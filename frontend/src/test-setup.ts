@@ -13,6 +13,9 @@ class ResizeObserverStub {
 }
 globalThis.ResizeObserver = ResizeObserverStub
 Element.prototype.scrollIntoView = () => {}
+Element.prototype.hasPointerCapture = () => false
+Element.prototype.setPointerCapture = () => {}
+Element.prototype.releasePointerCapture = () => {}
 
 export function stubMatchMedia(prefersDark: boolean) {
   window.matchMedia = ((query: string) => ({

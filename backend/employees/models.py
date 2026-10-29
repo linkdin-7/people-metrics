@@ -1,7 +1,10 @@
+import datetime
+
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models.functions import Lower
+from django.utils import timezone
 
 from employees.countries import (
     default_currency_for,
@@ -29,6 +32,23 @@ def validate_person_name(value: str) -> None:
             "Use at least 2 characters, starting with a letter. Only letters, spaces, "
             "hyphens, apostrophes and full stops are allowed.",
             code="invalid_name",
+        )
+
+
+EARLIEST_HIRE_DATE = datetime.date(1950, 1, 1)
+MAX_DAYS_AHEAD_FOR_HIRE_DATE = 30
+
+
+def validate_hire_date(value: datetime.date) -> None:
+    if value < EARLIEST_HIRE_DATE:
+        raise ValidationError(
+            "Hire date can't be before 1 January 1950.", code="hire_date_too_early"
+        )
+    latest = timezone.localdate() + datetime.timedelta(days=MAX_DAYS_AHEAD_FOR_HIRE_DATE)
+    if value > latest:
+        raise ValidationError(
+            "Hire date can be at most 30 days from today, for people about to join.",
+            code="hire_date_too_far_ahead",
         )
 
 
@@ -82,7 +102,7 @@ class Employee(models.Model):
         max_length=3, blank=True, validators=[validate_currency_code]
     )
     annual_salary = models.PositiveIntegerField(validators=[MinValueValidator(1)])
-    hire_date = models.DateField()
+    hire_date = models.DateField(validators=[validate_hire_date])
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

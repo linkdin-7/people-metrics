@@ -30,6 +30,7 @@ export type Lookups = {
   currencies: string[]
   departments: Department[]
   job_titles: string[]
+  countries_in_use: string[]
 }
 
 export class ApiError extends Error {
@@ -55,7 +56,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T
 }
 
+export type EmployeeInput = Omit<Employee, 'id' | 'department_name' | 'created_at' | 'updated_at'>
+
 export const api = {
   listEmployees: (query: URLSearchParams) => request<Page<Employee>>(`/employees?${query}`),
   getLookups: () => request<Lookups>('/lookups'),
+  createEmployee: (input: EmployeeInput) =>
+    request<Employee>('/employees', { method: 'POST', body: JSON.stringify(input) }),
+  updateEmployee: (id: number, input: EmployeeInput) =>
+    request<Employee>(`/employees/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
 }

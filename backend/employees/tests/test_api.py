@@ -111,6 +111,8 @@ def test_country_without_a_default_currency_needs_an_explicit_one(
         ({"currency": "ABC"}, "currency"),
         ({"email": "not-an-email"}, "email"),
         ({"hire_date": "2022-13-45"}, "hire_date"),
+        ({"hire_date": "2090-01-01"}, "hire_date"),
+        ({"hire_date": "1800-01-01"}, "hire_date"),
         ({"first_name": ""}, "first_name"),
         ({"first_name": "."}, "first_name"),
         ({"last_name": ".."}, "last_name"),

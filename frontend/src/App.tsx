@@ -9,6 +9,7 @@ import { CommandMenu } from '@/components/command-menu'
 import { PagePlaceholder } from '@/components/page-placeholder'
 import { ThemeProvider } from '@/components/theme'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { EmployeesPage } from '@/features/employees/employees-page'
 import { sections } from '@/lib/navigation'
@@ -89,6 +90,7 @@ export default function App() {
               </SidebarInset>
               <CommandMenu open={commandMenuOpen} onOpenChange={setCommandMenuOpen} />
             </SidebarProvider>
+            <Toaster position="bottom-right" />
           </TooltipProvider>
         </MotionConfig>
       </ThemeProvider>

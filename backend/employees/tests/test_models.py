@@ -1,5 +1,8 @@
+import datetime
+
 import pytest
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 from django.db import IntegrityError, transaction
 from django.db.models import ProtectedError
 
@@ -96,6 +99,32 @@ def test_names_must_be_at_least_two_characters_of_letters(build_employee, name):
         build_employee(first_name=name, last_name=name).full_clean()
 
     assert {"first_name", "last_name"} <= set(error.value.message_dict)
+
+
+@pytest.mark.parametrize("days_from_today", [-3650, -1, 0, 30])
+def test_hire_date_from_the_past_up_to_30_days_ahead_is_accepted(build_employee, days_from_today):
+    hire_date = timezone.localdate() + datetime.timedelta(days=days_from_today)
+
+    build_employee(hire_date=hire_date).full_clean()
+
+
+@pytest.mark.parametrize("days_from_today", [31, 365])
+def test_hire_date_more_than_30_days_ahead_is_rejected(build_employee, days_from_today):
+    hire_date = timezone.localdate() + datetime.timedelta(days=days_from_today)
+
+    with pytest.raises(ValidationError) as error:
+        build_employee(hire_date=hire_date).full_clean()
+
+    assert "hire_date" in error.value.message_dict
+
+
+def test_hire_date_before_1950_is_rejected_and_1950_is_accepted(build_employee):
+    build_employee(hire_date=datetime.date(1950, 1, 1)).full_clean()
+
+    with pytest.raises(ValidationError) as error:
+        build_employee(hire_date=datetime.date(1949, 12, 31)).full_clean()
+
+    assert "hire_date" in error.value.message_dict
 
 
 @pytest.mark.parametrize("salary", [0, -1])

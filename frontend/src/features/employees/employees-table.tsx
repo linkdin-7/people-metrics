@@ -57,6 +57,7 @@ type EmployeesTableProps = {
   countryNames: Map<string, string>
   sort: string | null
   onSort: (sort: string) => void
+  onEdit: (employee: Employee) => void
   hasFilters: boolean
   onClearFilters: () => void
 }
@@ -66,6 +67,7 @@ export function EmployeesTable({
   countryNames,
   sort,
   onSort,
+  onEdit,
   hasFilters,
   onClearFilters,
 }: EmployeesTableProps) {
@@ -112,7 +114,8 @@ export function EmployeesTable({
           ? employees.map((employee, index) => (
               <TableRow
                 key={employee.id}
-                className="animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both duration-300 motion-reduce:animate-none"
+                onClick={() => onEdit(employee)}
+                className="group/row cursor-pointer animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both duration-300 motion-reduce:animate-none"
                 style={{ animationDelay: `${Math.min(index, 12) * 18}ms` }}
               >
                 <TableCell className="pl-5">
@@ -125,9 +128,13 @@ export function EmployeesTable({
                       {initials(employee.first_name, employee.last_name)}
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate font-medium">
+                      <button
+                        type="button"
+                        aria-label={`Edit ${employee.first_name} ${employee.last_name}`}
+                        className="block max-w-full truncate rounded-sm text-left font-medium underline-offset-4 outline-none group-hover/row:text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                      >
                         {employee.first_name} {employee.last_name}
-                      </p>
+                      </button>
                       <p className="truncate text-xs text-muted-foreground">{employee.email}</p>
                     </div>
                   </div>

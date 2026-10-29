@@ -1,6 +1,7 @@
 import { ChevronsUpDown } from 'lucide-react'
 import { useState } from 'react'
 
+import { OptionLabel } from '@/components/search-select'
 import { Button } from '@/components/ui/button'
 import {
   Command,
@@ -11,9 +12,7 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { cn } from '@/lib/utils'
-
-export type FilterOption = { value: string; label: string }
+import { cn, rankMatch, type FilterOption } from '@/lib/utils'
 
 type FilterComboboxProps = {
   label: string
@@ -48,10 +47,10 @@ export function FilterCombobox({ label, value, options, onChange }: FilterCombob
           <ChevronsUpDown className="size-3.5 opacity-60" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-64 p-0">
-        <Command>
+      <PopoverContent align="start" className="w-72 p-0">
+        <Command filter={rankMatch}>
           <CommandInput placeholder={`Search ${label.toLowerCase()}…`} />
-          <CommandList>
+          <CommandList className="max-h-72">
             <CommandEmpty>No matches.</CommandEmpty>
             <CommandGroup>
               <CommandItem value={`Any ${label}`} data-checked={value === null} onSelect={() => choose(null)}>
@@ -61,10 +60,11 @@ export function FilterCombobox({ label, value, options, onChange }: FilterCombob
                 <CommandItem
                   key={option.value}
                   value={option.label}
+                  keywords={option.keywords}
                   data-checked={option.value === value}
                   onSelect={() => choose(option.value)}
                 >
-                  {option.label}
+                  <OptionLabel option={option} />
                 </CommandItem>
               ))}
             </CommandGroup>

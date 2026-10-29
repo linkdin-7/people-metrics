@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { AlertTriangle, ChevronLeft, ChevronRight, RotateCcw, Search, Wallet } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, ChevronRight, Plus, RotateCcw, Search, Wallet } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 
@@ -14,8 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { EmployeeSheet } from '@/features/employees/employee-form'
 import { EmployeesTable } from '@/features/employees/employees-table'
-import { api } from '@/lib/api'
+import { api, type Employee } from '@/lib/api'
 import { formatCount } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -141,6 +142,7 @@ export function EmployeesPage() {
     [setParams],
   )
 
+  const [editing, setEditing] = useState<Employee | 'new' | null>(null)
   const urlSearch = params.get('q') ?? ''
   const [search, setSearch] = useState(urlSearch)
 
@@ -156,10 +158,10 @@ export function EmployeesPage() {
     () => new Map((lookups.data?.countries ?? []).map((country) => [country.code, country.name])),
     [lookups.data],
   )
-  const countryOptions = (lookups.data?.countries ?? []).map((country) => ({
-    value: country.code,
-    label: country.name,
-  }))
+  const countriesInUse = new Set(lookups.data?.countries_in_use)
+  const countryOptions = (lookups.data?.countries ?? [])
+    .filter((country) => countriesInUse.has(country.code))
+    .map((country) => ({ value: country.code, label: country.name, hint: country.code, keywords: [country.code] }))
   const departmentOptions = (lookups.data?.departments ?? []).map((department) => ({
     value: String(department.id),
     label: department.name,
@@ -190,6 +192,10 @@ export function EmployeesPage() {
               : 'Loading the payroll…'}
           </p>
         </div>
+        <Button onClick={() => setEditing('new')} className="rounded-full shadow-sm shadow-primary/20">
+          <Plus />
+          Add employee
+        </Button>
       </header>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -268,6 +274,7 @@ export function EmployeesPage() {
               countryNames={countryNames}
               sort={params.get('sort')}
               onSort={(sort) => updateParams({ sort })}
+              onEdit={setEditing}
               hasFilters={hasFilters}
               onClearFilters={clearFilters}
             />
@@ -324,6 +331,13 @@ export function EmployeesPage() {
           </div>
         </footer>
       )}
+
+      <EmployeeSheet
+        open={editing !== null}
+        employee={editing === 'new' ? undefined : (editing ?? undefined)}
+        lookups={lookups.data}
+        onClose={() => setEditing(null)}
+      />
     </section>
   )
 }
