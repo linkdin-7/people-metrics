@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { MotionGlobalConfig } from 'motion/react'
-import { afterEach, beforeEach } from 'vitest'
+import { afterEach, beforeEach, vi } from 'vitest'
 
 // jsdom lacks these browser APIs; animations are skipped so tests stay fast and deterministic.
 MotionGlobalConfig.skipAnimations = true
@@ -31,6 +31,11 @@ beforeEach(() => {
   stubMatchMedia(false)
   localStorage.clear()
   document.documentElement.className = ''
+  // No test talks to a real server; tests that need data replace this stub.
+  vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 503 })))
 })
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+})

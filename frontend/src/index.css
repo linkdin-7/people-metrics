@@ -137,6 +137,33 @@
 }
 
 @layer components {
+  /* Each person gets a stable, gentle colour derived from their email. */
+  .avatar-tint {
+    background: oklch(0.93 0.045 var(--avatar-hue));
+    color: oklch(0.4 0.09 var(--avatar-hue));
+  }
+  .dark .avatar-tint {
+    background: oklch(0.32 0.06 var(--avatar-hue));
+    color: oklch(0.9 0.06 var(--avatar-hue));
+  }
+
+  /* Thin sliding bar shown while a new page of results loads. */
+  .loading-bar {
+    position: absolute;
+    inset: 0 0 auto 0;
+    z-index: 10;
+    height: 2px;
+    overflow: hidden;
+  }
+  .loading-bar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: 35%;
+    background: linear-gradient(90deg, transparent, var(--primary), var(--highlight), transparent);
+    animation: loading-slide 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
   /* Soft teal and marigold light behind the top of each page. */
   .aurora {
     position: absolute;
@@ -146,6 +173,15 @@
     background:
       radial-gradient(42rem 20rem at 12% -12%, color-mix(in oklch, var(--primary) 18%, transparent), transparent 70%),
       radial-gradient(30rem 16rem at 88% -22%, color-mix(in oklch, var(--highlight) 16%, transparent), transparent 70%);
+  }
+}
+
+@keyframes loading-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
   }
 }
 

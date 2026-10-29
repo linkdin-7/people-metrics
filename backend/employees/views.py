@@ -56,7 +56,12 @@ class StableOrderingFilter(OrderingFilter):
 
     def filter_queryset(self, request, queryset, view):
         ordering = self.get_ordering(request, queryset, view)
-        return queryset.order_by(*ordering, "id") if ordering else queryset
+        if not ordering:
+            return queryset
+        # Amounts in different currencies are not comparable, so salary sorts group by currency first.
+        if any(field.lstrip("-") == "annual_salary" for field in ordering):
+            ordering = ["currency", *ordering]
+        return queryset.order_by(*ordering, "id")
 
 
 class SalaryRangeForm(forms.Form):

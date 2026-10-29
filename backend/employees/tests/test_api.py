@@ -341,6 +341,31 @@ def test_list_can_be_sorted_by_salary_in_both_directions(api_client, mixed_emplo
     assert emails_in(descending) == ["b@example.com", "a@example.com"]
 
 
+def test_salary_sort_groups_by_currency_so_amounts_are_never_compared_across_currencies(
+    api_client, create_employee
+):
+    create_employee(email="usd-high@example.com", country="US", annual_salary=180000)
+    create_employee(email="eur-low@example.com", country="DE", annual_salary=60000)
+    create_employee(email="eur-high@example.com", country="DE", annual_salary=130000)
+    create_employee(email="usd-low@example.com", country="US", annual_salary=90000)
+
+    ascending = api_client.get(EMPLOYEES, {"sort": "annual_salary"})
+    descending = api_client.get(EMPLOYEES, {"sort": "-annual_salary"})
+
+    assert emails_in(ascending) == [
+        "eur-low@example.com",
+        "eur-high@example.com",
+        "usd-low@example.com",
+        "usd-high@example.com",
+    ]
+    assert emails_in(descending) == [
+        "eur-high@example.com",
+        "eur-low@example.com",
+        "usd-high@example.com",
+        "usd-low@example.com",
+    ]
+
+
 def test_equal_sort_values_fall_back_to_id_order(api_client, create_employee):
     first = create_employee(email="x@example.com", annual_salary=500000)
     second = create_employee(email="y@example.com", annual_salary=500000)
