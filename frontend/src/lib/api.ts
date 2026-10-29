@@ -72,6 +72,19 @@ export type SalarySummary = { headcount: number; salary_by_currency: SalaryStats
 
 export type BreakdownKind = 'by-country' | 'by-department' | 'by-job-title'
 
+export type AskColumn = { key: string; label: string; kind: 'text' | 'count' | 'money' }
+
+export type AskAnswer = {
+  status: 'answered' | 'needs_clarification' | 'unsupported'
+  question: string
+  interpretation: { label: string; value: string }[]
+  answer: string
+  notes: string[]
+  columns: AskColumn[]
+  rows: Record<string, string | number>[]
+  suggestions: string[]
+}
+
 export type DistributionBucket = { min_salary: number; max_salary: number; headcount: number }
 
 export type Distribution = { currency: string; bucket_width: number; buckets: DistributionBucket[] }
@@ -86,6 +99,8 @@ export const api = {
   deleteEmployee: (id: number) => request<null>(`/employees/${id}`, { method: 'DELETE' }),
   restoreEmployee: (id: number) => request<Employee>(`/employees/${id}/restore`, { method: 'POST' }),
   getSalarySummary: (query: URLSearchParams) => request<SalarySummary>(`/insights/summary?${query}`),
+  askQuestion: (question: string) =>
+    request<AskAnswer>('/insights/ask', { method: 'POST', body: JSON.stringify({ question }) }),
   getBreakdown: (by: BreakdownKind, query: URLSearchParams = new URLSearchParams()) =>
     request<SalaryStats[]>(`/insights/${by}?${query}`),
   getDistribution: (query: URLSearchParams) => request<Distribution>(`/insights/distribution?${query}`),

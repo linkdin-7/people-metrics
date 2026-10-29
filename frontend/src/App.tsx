@@ -6,23 +6,14 @@ import { Navigate, Route, Routes, useLocation } from 'react-router'
 import { AppHeader } from '@/components/app-header'
 import { AppSidebar } from '@/components/app-sidebar'
 import { CommandMenu } from '@/components/command-menu'
-import { PagePlaceholder } from '@/components/page-placeholder'
 import { ThemeProvider } from '@/components/theme'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { AskPage } from '@/features/ask/ask-page'
 import { DashboardPage } from '@/features/dashboard/dashboard-page'
 import { EmployeesPage } from '@/features/employees/employees-page'
 import { InsightsPage } from '@/features/insights/insights-page'
-import { sections } from '@/lib/navigation'
-
-const PLACEHOLDER_HIGHLIGHTS: Record<string, string[]> = {
-  '/ask': [
-    'Ask in plain English, one question at a time',
-    'Every answer is computed from the database',
-    'See exactly how your question was understood',
-  ],
-}
 
 function AnimatedRoutes() {
   const location = useLocation()
@@ -40,17 +31,7 @@ function AnimatedRoutes() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/insights" element={<InsightsPage />} />
           <Route path="/employees" element={<EmployeesPage />} />
-          {sections
-            .filter((section) => section.path in PLACEHOLDER_HIGHLIGHTS)
-            .map((section) => (
-              <Route
-                key={section.path}
-                path={section.path}
-                element={
-                  <PagePlaceholder section={section} highlights={PLACEHOLDER_HIGHLIGHTS[section.path]} />
-                }
-              />
-            ))}
+          <Route path="/ask" element={<AskPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </motion.div>
