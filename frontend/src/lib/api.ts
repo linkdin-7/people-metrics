@@ -70,6 +70,12 @@ export type SalaryStats = {
 
 export type SalarySummary = { headcount: number; salary_by_currency: SalaryStats[] }
 
+export type BreakdownKind = 'by-country' | 'by-department' | 'by-job-title'
+
+export type DistributionBucket = { min_salary: number; max_salary: number; headcount: number }
+
+export type Distribution = { currency: string; bucket_width: number; buckets: DistributionBucket[] }
+
 export const api = {
   listEmployees: (query: URLSearchParams) => request<Page<Employee>>(`/employees?${query}`),
   getLookups: () => request<Lookups>('/lookups'),
@@ -80,5 +86,8 @@ export const api = {
   deleteEmployee: (id: number) => request<null>(`/employees/${id}`, { method: 'DELETE' }),
   restoreEmployee: (id: number) => request<Employee>(`/employees/${id}/restore`, { method: 'POST' }),
   getSalarySummary: (query: URLSearchParams) => request<SalarySummary>(`/insights/summary?${query}`),
-  getBreakdown: (by: 'by-country' | 'by-department') => request<SalaryStats[]>(`/insights/${by}`),
+  getBreakdown: (by: BreakdownKind, query: URLSearchParams = new URLSearchParams()) =>
+    request<SalaryStats[]>(`/insights/${by}?${query}`),
+  getDistribution: (query: URLSearchParams) => request<Distribution>(`/insights/distribution?${query}`),
+  getEarners: (query: URLSearchParams) => request<Employee[]>(`/insights/earners?${query}`),
 }

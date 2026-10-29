@@ -13,14 +13,10 @@ import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { DashboardPage } from '@/features/dashboard/dashboard-page'
 import { EmployeesPage } from '@/features/employees/employees-page'
+import { InsightsPage } from '@/features/insights/insights-page'
 import { sections } from '@/lib/navigation'
 
 const PLACEHOLDER_HIGHLIGHTS: Record<string, string[]> = {
-  '/insights': [
-    'Pay by country, department and job title',
-    'Salary distribution for each currency',
-    'Highest and lowest paid at a glance',
-  ],
   '/ask': [
     'Ask in plain English, one question at a time',
     'Every answer is computed from the database',
@@ -42,6 +38,7 @@ function AnimatedRoutes() {
       >
         <Routes location={location}>
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/insights" element={<InsightsPage />} />
           <Route path="/employees" element={<EmployeesPage />} />
           {sections
             .filter((section) => section.path in PLACEHOLDER_HIGHLIGHTS)

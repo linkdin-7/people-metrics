@@ -26,6 +26,15 @@ export function currencyName(code: string): string {
   return currencyNames.of(code) ?? code
 }
 
+export function formatCompactMoney(amount: number, currency: string): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(amount)
+}
+
 export function formatCount(value: number): string {
   return countFormatter.format(value)
 }
