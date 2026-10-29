@@ -80,4 +80,5 @@ export const api = {
   deleteEmployee: (id: number) => request<null>(`/employees/${id}`, { method: 'DELETE' }),
   restoreEmployee: (id: number) => request<Employee>(`/employees/${id}/restore`, { method: 'POST' }),
   getSalarySummary: (query: URLSearchParams) => request<SalarySummary>(`/insights/summary?${query}`),
+  getBreakdown: (by: 'by-country' | 'by-department') => request<SalaryStats[]>(`/insights/${by}`),
 }

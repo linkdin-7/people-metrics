@@ -11,15 +11,11 @@ import { ThemeProvider } from '@/components/theme'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { DashboardPage } from '@/features/dashboard/dashboard-page'
 import { EmployeesPage } from '@/features/employees/employees-page'
 import { sections } from '@/lib/navigation'
 
 const PLACEHOLDER_HIGHLIGHTS: Record<string, string[]> = {
-  '/dashboard': [
-    'Headcount across countries and departments',
-    'Lowest, median, average and highest pay per currency',
-    'One click into the detail behind every number',
-  ],
   '/insights': [
     'Pay by country, department and job title',
     'Salary distribution for each currency',
@@ -45,6 +41,7 @@ function AnimatedRoutes() {
         transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
       >
         <Routes location={location}>
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/employees" element={<EmployeesPage />} />
           {sections
             .filter((section) => section.path in PLACEHOLDER_HIGHLIGHTS)

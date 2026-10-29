@@ -222,6 +222,7 @@ function EmployeeForm({ employee, lookups, onSaved, onCancel }: EmployeeFormProp
       queryClient.invalidateQueries({ queryKey: ['employees'] })
       queryClient.invalidateQueries({ queryKey: ['lookups'] })
       queryClient.invalidateQueries({ queryKey: ['salary-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['insights'] })
       const name = `${input.first_name} ${input.last_name}`
       toast.success(employee ? `Saved ${name}` : `Added ${name}`)
       onSaved(saved)

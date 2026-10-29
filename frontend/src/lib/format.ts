@@ -20,6 +20,12 @@ export function formatMoney(amount: number, currency: string): string {
   return formatter.format(amount)
 }
 
+const currencyNames = new Intl.DisplayNames(['en'], { type: 'currency' })
+
+export function currencyName(code: string): string {
+  return currencyNames.of(code) ?? code
+}
+
 export function formatCount(value: number): string {
   return countFormatter.format(value)
 }

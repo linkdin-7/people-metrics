@@ -14,22 +14,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { StatTile } from '@/components/stat-tile'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { ApiError, api, type Employee, type SalaryStats } from '@/lib/api'
 import { comparePay, describeTenure, formatDate, formatMoney, hueFor, initials } from '@/lib/format'
-
-function Stat({ label, value, detail }: { label: string; value: string; detail: string }) {
-  return (
-    <div className="rounded-xl border border-border/70 bg-card/60 p-4">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className="mt-1 text-xl font-semibold tracking-tight tabular-nums">{value}</p>
-      <p className="mt-0.5 text-xs text-muted-foreground">{detail}</p>
-    </div>
-  )
-}
 
 function Detail({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -93,7 +84,7 @@ export function EmployeeProfile({ employee, countryName, onEdit, onClose }: Empl
   const fullName = `${employee.first_name} ${employee.last_name}`
 
   function refreshEmployeeData() {
-    for (const key of ['employees', 'lookups', 'salary-summary']) {
+    for (const key of ['employees', 'lookups', 'salary-summary', 'insights']) {
       queryClient.invalidateQueries({ queryKey: [key] })
     }
   }
@@ -176,17 +167,17 @@ export function EmployeeProfile({ employee, countryName, onEdit, onClose }: Empl
 
       <div className="flex-1 space-y-8 overflow-y-auto px-6 py-6 sm:px-8">
         <section className="grid gap-3 sm:grid-cols-3">
-          <Stat
+          <StatTile
             label="Annual salary"
             value={formatMoney(employee.annual_salary, employee.currency)}
             detail="per year"
           />
-          <Stat
+          <StatTile
             label="Monthly"
             value={formatMoney(Math.round(employee.annual_salary / 12), employee.currency)}
             detail="per month"
           />
-          <Stat
+          <StatTile
             label="Tenure"
             value={describeTenure(employee.hire_date)}
             detail={`${startsLater ? 'Starting' : 'Since'} ${formatDate(employee.hire_date)}`}
