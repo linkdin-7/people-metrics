@@ -1,4 +1,4 @@
-# People Metrics
+# ACME Salary Management
 
 Salary management for an HR Manager: maintain employee salary data and understand how the organization pays its people from one web app.
 
@@ -42,6 +42,18 @@ Requires Python 3.12 or newer and PostgreSQL (developed on Python 3.13 and Postg
 7. Start the API: `python manage.py runserver`. Interactive API docs (Swagger UI) are at `http://localhost:8000/api/docs`, and the OpenAPI schema at `http://localhost:8000/api/schema`.
 
 The country list in `employees/data/countries.json` is committed. To regenerate it from the ISO data, run `python scripts/generate_countries.py`.
+
+## Frontend setup
+
+Requires Node.js (developed on Node 24). The dev server proxies `/api` and `/health` to the Django API on port 8000, so start the backend first.
+
+```bash
+cd frontend
+npm install
+npm run dev      # http://localhost:5173
+npm test         # unit tests
+npm run build    # type check and production build
+```
 
 ## Documentation
 

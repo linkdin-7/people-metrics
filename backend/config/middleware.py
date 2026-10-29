@@ -42,5 +42,5 @@ class BasicAuthMiddleware:
             return self.get_response(request)
 
         response = HttpResponse("Authentication required.", status=401)
-        response["WWW-Authenticate"] = 'Basic realm="People Metrics"'
+        response["WWW-Authenticate"] = 'Basic realm="ACME Salary Management"'
         return response

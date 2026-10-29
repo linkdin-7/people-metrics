@@ -21,7 +21,7 @@ INSTALLED_APPS = [
 ]
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "People Metrics API",
+    "TITLE": "ACME Salary Management API",
     "DESCRIPTION": "Employee salary management API.",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
