@@ -39,7 +39,7 @@ The ISO 3166 list includes territories, and a few have no single clear currency 
 
 ## Performance
 
-- Lists are always paginated on the server, and filtered and sorted columns are indexed: department, country, currency, salary and name.
+- Lists are always paginated on the server. Indexes are declared on country and salary, and Postgres also indexes the department foreign key and the unique email and department name. Currency, job title and name are not indexed, because at 10,000 rows the measured times below are well under the target without them. They are the first candidates if the table grows.
 - Aggregates are computed in the database, and the browser only receives the results.
 - The seed inserts in batches of 1,000 inside one transaction. Measured on a development machine: 10,000 employees in about 2 seconds.
 - Target: list and insight responses well under 500 ms at 10,000 rows.

@@ -5,7 +5,11 @@ Salary management for an HR Manager: maintain employee salary data and understan
 
 ## Status
 
-Implementation in progress. The Django project, country list and models are in place. See `docs/requirements.md` and `docs/plan.md`.
+The backend API, the React app (Dashboard, Employees, Insights and Ask a Question), the seed command and the automated tests are built. Deployment is the remaining step. See `docs/requirements.md` and `docs/plan.md`.
+
+## Demo
+
+[Demo video](https://drive.google.com/file/d/15Dm5R26qEq1runj909IvdA3yMgg1Nece/view?usp=sharing) of the application.
 
 ## Stack
 
@@ -59,6 +63,8 @@ npm run build    # type check and production build
 
 - `docs/requirements.md`: one-page requirements
 - `docs/plan.md`: architecture and implementation plan
-- `docs/ai/`: how AI was used during development
+- `docs/architecture.md`: diagrams of the system, a request, the Ask flow and the data
+- `docs/tradeoffs.md`: key trade-offs and performance notes
+- `docs/ai/AI_WORKFLOW.md`: how AI was used, with the key decisions and corrections
 
-Seeding, frontend and deployment instructions are added as each part is built.
+Deployment instructions are added once the app is deployed.
