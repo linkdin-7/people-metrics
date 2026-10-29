@@ -3,6 +3,7 @@ from io import StringIO
 import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.utils import timezone
 
 from employees.countries import default_currency_for, is_valid_country
 from employees.models import Department, Employee
@@ -107,6 +108,15 @@ def test_reset_replaces_the_existing_employees():
     seed_employees(count=5, seed=1, reset=True)
 
     assert Employee.objects.count() == 5
+
+
+def test_reset_also_removes_soft_deleted_employees():
+    seed_employees(count=10, seed=1)
+    Employee.objects.update(deleted_at=timezone.now())
+
+    seed_employees(count=5, seed=1, reset=True)
+
+    assert Employee.all_objects.count() == 5
 
 
 @pytest.mark.parametrize("count", [0, -1])

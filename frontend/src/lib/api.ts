@@ -58,6 +58,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export type EmployeeInput = Omit<Employee, 'id' | 'department_name' | 'created_at' | 'updated_at'>
 
+export type SalaryStats = {
+  group?: string
+  currency: string
+  headcount: number
+  min_salary: number
+  median_salary: number
+  average_salary: number
+  max_salary: number
+}
+
+export type SalarySummary = { headcount: number; salary_by_currency: SalaryStats[] }
+
 export const api = {
   listEmployees: (query: URLSearchParams) => request<Page<Employee>>(`/employees?${query}`),
   getLookups: () => request<Lookups>('/lookups'),
@@ -65,4 +77,7 @@ export const api = {
     request<Employee>('/employees', { method: 'POST', body: JSON.stringify(input) }),
   updateEmployee: (id: number, input: EmployeeInput) =>
     request<Employee>(`/employees/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
+  deleteEmployee: (id: number) => request<null>(`/employees/${id}`, { method: 'DELETE' }),
+  restoreEmployee: (id: number) => request<Employee>(`/employees/${id}/restore`, { method: 'POST' }),
+  getSalarySummary: (query: URLSearchParams) => request<SalarySummary>(`/insights/summary?${query}`),
 }

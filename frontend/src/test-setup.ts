@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { MotionGlobalConfig } from 'motion/react'
+import { toast } from 'sonner'
 import { afterEach, beforeEach, vi } from 'vitest'
 
 // jsdom lacks these browser APIs; animations are skipped so tests stay fast and deterministic.
@@ -41,4 +42,6 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
+  // Toasts live in a shared store, so one test's toasts must not leak into the next.
+  toast.dismiss()
 })

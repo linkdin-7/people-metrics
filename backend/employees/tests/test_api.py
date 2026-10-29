@@ -226,6 +226,70 @@ def test_employee_is_deleted(api_client, create_employee):
     assert api_client.get(f"{EMPLOYEES}/{employee.id}").status_code == 404
 
 
+def test_delete_is_soft_so_the_record_is_kept_but_hidden(api_client, create_employee):
+    employee = create_employee()
+    create_employee()
+
+    api_client.delete(f"{EMPLOYEES}/{employee.id}")
+
+    assert api_client.get(EMPLOYEES).json()["count"] == 1
+    kept = Employee.all_objects.get(pk=employee.pk)
+    assert kept.deleted_at is not None
+
+
+def test_deleted_employees_are_left_out_of_insights_and_lookups(api_client, create_employee):
+    employee = create_employee(country="DE", job_title="Archivist")
+    create_employee(country="IN")
+
+    api_client.delete(f"{EMPLOYEES}/{employee.id}")
+
+    assert api_client.get("/api/v1/insights/summary").json()["headcount"] == 1
+    lookups = api_client.get(LOOKUPS).json()
+    assert lookups["countries_in_use"] == ["IN"]
+    assert "Archivist" not in lookups["job_titles"]
+
+
+def test_the_email_of_a_deleted_employee_can_be_reused(api_client, engineering, create_employee):
+    employee = create_employee(email="asha@example.com")
+    api_client.delete(f"{EMPLOYEES}/{employee.id}")
+
+    response = api_client.post(
+        EMPLOYEES, employee_payload(engineering, email="asha@example.com"), format="json"
+    )
+
+    assert response.status_code == 201
+
+
+def test_a_deleted_employee_can_be_restored(api_client, create_employee):
+    employee = create_employee()
+    api_client.delete(f"{EMPLOYEES}/{employee.id}")
+
+    response = api_client.post(f"{EMPLOYEES}/{employee.id}/restore")
+
+    assert response.status_code == 200
+    assert response.json()["id"] == employee.id
+    assert api_client.get(f"{EMPLOYEES}/{employee.id}").status_code == 200
+
+
+def test_restoring_is_refused_when_an_active_employee_now_uses_the_email(
+    api_client, engineering, create_employee
+):
+    employee = create_employee(email="asha@example.com")
+    api_client.delete(f"{EMPLOYEES}/{employee.id}")
+    api_client.post(EMPLOYEES, employee_payload(engineering, email="asha@example.com"), format="json")
+
+    response = api_client.post(f"{EMPLOYEES}/{employee.id}/restore")
+
+    assert response.status_code == 409
+
+
+def test_restoring_an_active_or_unknown_employee_is_not_found(api_client, create_employee):
+    employee = create_employee()
+
+    assert api_client.post(f"{EMPLOYEES}/{employee.id}/restore").status_code == 404
+    assert api_client.post(f"{EMPLOYEES}/999999/restore").status_code == 404
+
+
 def test_list_is_paginated_with_a_default_page_size_of_25(api_client, create_employee):
     for _ in range(30):
         create_employee()

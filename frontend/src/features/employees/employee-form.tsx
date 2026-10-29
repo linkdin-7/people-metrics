@@ -4,6 +4,7 @@ import { useState, type ChangeEvent, type CSSProperties, type FormEvent, type Re
 import { toast } from 'sonner'
 
 import { SearchSelect } from '@/components/search-select'
+import { EmployeeProfile } from '@/features/employees/employee-profile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -190,10 +191,11 @@ function SectionTitle({ children }: { children: ReactNode }) {
 type EmployeeFormProps = {
   employee: Employee | undefined
   lookups: Lookups | undefined
-  onDone: () => void
+  onSaved: (saved: Employee) => void
+  onCancel: () => void
 }
 
-function EmployeeForm({ employee, lookups, onDone }: EmployeeFormProps) {
+function EmployeeForm({ employee, lookups, onSaved, onCancel }: EmployeeFormProps) {
   const queryClient = useQueryClient()
   const countries = lookups?.countries ?? []
   const defaultCurrencyOf = (code: string) => countries.find((country) => country.code === code)?.currency ?? ''
@@ -216,12 +218,13 @@ function EmployeeForm({ employee, lookups, onDone }: EmployeeFormProps) {
   const save = useMutation({
     mutationFn: (input: EmployeeInput) =>
       employee ? api.updateEmployee(employee.id, input) : api.createEmployee(input),
-    onSuccess: (_saved, input) => {
+    onSuccess: (saved, input) => {
       queryClient.invalidateQueries({ queryKey: ['employees'] })
       queryClient.invalidateQueries({ queryKey: ['lookups'] })
+      queryClient.invalidateQueries({ queryKey: ['salary-summary'] })
       const name = `${input.first_name} ${input.last_name}`
       toast.success(employee ? `Saved ${name}` : `Added ${name}`)
-      onDone()
+      onSaved(saved)
     },
     onError: (error) => setServerErrors(errorsFromServer(error)),
   })
@@ -290,7 +293,11 @@ function EmployeeForm({ employee, lookups, onDone }: EmployeeFormProps) {
   const title = employee ? `Edit ${employee.first_name} ${employee.last_name}` : 'New employee'
 
   return (
-    <form noValidate onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
+    <form
+      noValidate
+      onSubmit={submit}
+      className="flex min-h-0 flex-1 flex-col animate-in fade-in-0 slide-in-from-right-2 duration-300"
+    >
       <SheetHeader className="border-b px-6 py-5">
         <div className="flex items-center gap-4">
           <span
@@ -408,7 +415,7 @@ function EmployeeForm({ employee, lookups, onDone }: EmployeeFormProps) {
       </div>
 
       <SheetFooter className="flex-row justify-end gap-2 border-t px-6 py-4">
-        <Button type="button" variant="ghost" onClick={onDone}>
+        <Button type="button" variant="ghost" onClick={onCancel}>
           Cancel
         </Button>
         <Button type="submit" disabled={save.isPending} className="min-w-32">
@@ -420,18 +427,39 @@ function EmployeeForm({ employee, lookups, onDone }: EmployeeFormProps) {
   )
 }
 
+// The panel either shows an employee's profile or the form for adding or editing one.
+export type EmployeePanel = { mode: 'view' | 'edit'; employee?: Employee }
+
 type EmployeeSheetProps = {
-  open: boolean
-  employee: Employee | undefined
+  panel: EmployeePanel | null
   lookups: Lookups | undefined
-  onClose: () => void
+  onPanelChange: (panel: EmployeePanel | null) => void
 }
 
-export function EmployeeSheet({ open, employee, lookups, onClose }: EmployeeSheetProps) {
+export function EmployeeSheet({ panel, lookups, onPanelChange }: EmployeeSheetProps) {
+  const employee = panel?.employee
+  const countryName = lookups?.countries.find((country) => country.code === employee?.country)?.name
+
   return (
-    <Sheet open={open} onOpenChange={(next) => !next && onClose()}>
+    <Sheet open={panel !== null} onOpenChange={(next) => !next && onPanelChange(null)}>
       <SheetContent className="flex flex-col gap-0 p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-2xl data-[side=right]:xl:max-w-3xl">
-        {open && <EmployeeForm key={employee?.id ?? 'new'} employee={employee} lookups={lookups} onDone={onClose} />}
+        {panel?.mode === 'view' && employee && (
+          <EmployeeProfile
+            employee={employee}
+            countryName={countryName}
+            onEdit={() => onPanelChange({ mode: 'edit', employee })}
+            onClose={() => onPanelChange(null)}
+          />
+        )}
+        {panel?.mode === 'edit' && (
+          <EmployeeForm
+            key={employee?.id ?? 'new'}
+            employee={employee}
+            lookups={lookups}
+            onSaved={(saved) => onPanelChange(employee ? { mode: 'view', employee: saved } : null)}
+            onCancel={() => onPanelChange(employee ? { mode: 'view', employee } : null)}
+          />
+        )}
       </SheetContent>
     </Sheet>
   )

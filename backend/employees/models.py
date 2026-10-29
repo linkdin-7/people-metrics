@@ -89,6 +89,11 @@ class Department(models.Model):
         super().save(*args, **kwargs)
 
 
+class ActiveEmployeeManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(deleted_at__isnull=True)
+
+
 class Employee(models.Model):
     first_name = models.CharField(max_length=100, validators=[validate_person_name])
     last_name = models.CharField(max_length=100, validators=[validate_person_name])
@@ -105,12 +110,19 @@ class Employee(models.Model):
     hire_date = models.DateField(validators=[validate_hire_date])
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
+    # Deleting only sets deleted_at; the default manager hides those rows everywhere.
+    objects = ActiveEmployeeManager()
+    all_objects = models.Manager()
 
     class Meta:
         ordering = ["last_name", "first_name", "id"]
         constraints = [
             models.UniqueConstraint(
-                Lower("email"), name="unique_employee_email_ignoring_case"
+                Lower("email"),
+                condition=models.Q(deleted_at__isnull=True),
+                name="unique_active_employee_email_ignoring_case",
             ),
             models.CheckConstraint(
                 condition=models.Q(annual_salary__gt=0),

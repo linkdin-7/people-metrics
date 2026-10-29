@@ -59,9 +59,13 @@ type ApiOptions = {
   count?: number
   failEmployees?: boolean
   writeResponse?: (write: Write) => Response
+  peerHeadcount?: number
 }
 
 function savedEmployee(write: Write) {
+  if (write.method === 'DELETE') {
+    return new Response(null, { status: 204 })
+  }
   return json({ ...employee(), ...write.body, id: 99 }, write.method === 'POST' ? 201 : 200)
 }
 
@@ -70,8 +74,10 @@ function mockApi({
   count,
   failEmployees = false,
   writeResponse = savedEmployee,
+  peerHeadcount = 312,
 }: ApiOptions = {}) {
   const employeeQueries: URLSearchParams[] = []
+  const summaryQueries: URLSearchParams[] = []
   const writes: Write[] = []
   vi.stubGlobal(
     'fetch',
@@ -86,6 +92,22 @@ function mockApi({
       if (url.pathname === '/api/v1/lookups') {
         return json(LOOKUPS)
       }
+      if (url.pathname === '/api/v1/insights/summary') {
+        summaryQueries.push(url.searchParams)
+        return json({
+          headcount: peerHeadcount,
+          salary_by_currency: [
+            {
+              currency: 'INR',
+              headcount: peerHeadcount,
+              min_salary: 800000,
+              median_salary: 1200000,
+              average_salary: 1250000,
+              max_salary: 2000000,
+            },
+          ],
+        })
+      }
       if (url.pathname === '/api/v1/employees') {
         employeeQueries.push(url.searchParams)
         if (failEmployees) {
@@ -98,6 +120,7 @@ function mockApi({
   )
   return {
     employeeQueries,
+    summaryQueries,
     writes,
     lastQuery: () => employeeQueries[employeeQueries.length - 1],
   }
@@ -498,11 +521,13 @@ describe('adding and editing', () => {
     ).toBeInTheDocument()
   })
 
-  test('clicking an employee opens their details, and saving sends the change', async () => {
+  test('editing from the profile sends the change and returns to the updated profile', async () => {
     const api = mockApi()
     const user = renderPage()
 
-    await user.click(await screen.findByRole('button', { name: 'Edit Asha Rao' }))
+    await user.click(await screen.findByRole('button', { name: 'View Asha Rao' }))
+    const profile = await screen.findByRole('dialog', { name: 'Asha Rao' })
+    await user.click(within(profile).getByRole('button', { name: 'Edit' }))
     const panel = await screen.findByRole('dialog', { name: 'Edit Asha Rao' })
     expect(within(panel).getByLabelText('First name')).toHaveValue('Asha')
     expect(within(panel).getByRole('combobox', { name: 'Department' })).toHaveTextContent('Engineering')
@@ -517,5 +542,131 @@ describe('adding and editing', () => {
     expect(api.writes[0].path).toBe('/api/v1/employees/1')
     expect(api.writes[0].body).toMatchObject({ annual_salary: 1400000, currency: 'INR', department: 1 })
     expect(await screen.findByText('Saved Asha Rao')).toBeInTheDocument()
+    const updated = await screen.findByRole('dialog', { name: 'Asha Rao' })
+    expect(within(updated).getByText('₹1,400,000')).toBeInTheDocument()
+  })
+})
+
+describe('employee profile', () => {
+  async function openProfile(user: User) {
+    await user.click(await screen.findByRole('button', { name: 'View Asha Rao' }))
+    return screen.findByRole('dialog', { name: 'Asha Rao' })
+  }
+
+  test('clicking an employee shows their profile, not a form', async () => {
+    mockApi()
+    const user = renderPage()
+
+    const profile = await openProfile(user)
+
+    expect(within(profile).getByText('Software Engineer · Engineering')).toBeInTheDocument()
+    expect(within(profile).getByText('₹1,300,000')).toBeInTheDocument()
+    expect(within(profile).getByText('₹108,333')).toBeInTheDocument()
+    expect(within(profile).getByText(/Since 1 Apr 2022/)).toBeInTheDocument()
+    expect(within(profile).queryByRole('textbox')).not.toBeInTheDocument()
+  })
+
+  test('compares the salary with peers in the same role and currency', async () => {
+    const api = mockApi()
+    const user = renderPage()
+
+    const profile = await openProfile(user)
+
+    expect(await within(profile).findByText('8% above the median')).toBeInTheDocument()
+    expect(within(profile).getByText('312 people in this role are paid in INR')).toBeInTheDocument()
+    expect(within(profile).getByText('Median ₹1,200,000')).toBeInTheDocument()
+    expect(api.summaryQueries[0].get('job_title')).toBe('Software Engineer')
+    expect(api.summaryQueries[0].get('currency')).toBe('INR')
+  })
+
+  test('says when nobody else shares the role and currency', async () => {
+    mockApi({ peerHeadcount: 1 })
+    const user = renderPage()
+
+    const profile = await openProfile(user)
+
+    expect(await within(profile).findByText(/only person in this role paid in INR/)).toBeInTheDocument()
+    expect(within(profile).queryByText(/the median/)).not.toBeInTheDocument()
+  })
+
+  test('the email can be copied', async () => {
+    mockApi()
+    const user = renderPage()
+    const profile = await openProfile(user)
+
+    await user.click(within(profile).getByRole('button', { name: 'Copy email' }))
+
+    expect(await navigator.clipboard.readText()).toBe('asha.rao.1@example.com')
+    expect(await screen.findByText('Email copied')).toBeInTheDocument()
+  })
+
+  test('deleting asks for confirmation, then removes the employee and refreshes the list', async () => {
+    const api = mockApi()
+    const user = renderPage()
+    const profile = await openProfile(user)
+
+    await user.click(within(profile).getByRole('button', { name: 'Delete' }))
+    const confirmation = await screen.findByRole('alertdialog', { name: 'Delete Asha Rao?' })
+    await user.click(within(confirmation).getByRole('button', { name: 'Cancel' }))
+    expect(api.writes).toHaveLength(0)
+    expect(screen.getByRole('dialog', { name: 'Asha Rao' })).toBeInTheDocument()
+
+    await user.click(within(profile).getByRole('button', { name: 'Delete' }))
+    const listRequestsBefore = api.employeeQueries.length
+    await user.click(
+      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete employee' }),
+    )
+
+    await waitFor(() => expect(api.writes).toEqual([{ method: 'DELETE', path: '/api/v1/employees/1', body: {} }]))
+    expect(await screen.findByText('Deleted Asha Rao')).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    await waitFor(() => expect(api.employeeQueries.length).toBeGreaterThan(listRequestsBefore))
+  })
+
+  test('a deleted employee can be brought back with Undo', async () => {
+    const api = mockApi()
+    const user = renderPage()
+    const profile = await openProfile(user)
+
+    await user.click(within(profile).getByRole('button', { name: 'Delete' }))
+    await user.click(
+      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete employee' }),
+    )
+    await user.click(await screen.findByRole('button', { name: 'Undo' }))
+
+    await waitFor(() =>
+      expect(api.writes.map((write) => `${write.method} ${write.path}`)).toEqual([
+        'DELETE /api/v1/employees/1',
+        'POST /api/v1/employees/1/restore',
+      ]),
+    )
+    expect(await screen.findByText('Restored Asha Rao')).toBeInTheDocument()
+  })
+
+  test('a failed delete keeps the profile open and says so', async () => {
+    mockApi({ writeResponse: () => json({ detail: 'Server error' }, 500) })
+    const user = renderPage()
+    const profile = await openProfile(user)
+
+    await user.click(within(profile).getByRole('button', { name: 'Delete' }))
+    await user.click(
+      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete employee' }),
+    )
+
+    expect(await screen.findByText("Couldn't delete Asha Rao. Please try again.")).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Asha Rao' })).toBeInTheDocument()
+  })
+
+  test('cancelling an edit returns to the profile without saving', async () => {
+    const api = mockApi()
+    const user = renderPage()
+    const profile = await openProfile(user)
+
+    await user.click(within(profile).getByRole('button', { name: 'Edit' }))
+    const form = await screen.findByRole('dialog', { name: 'Edit Asha Rao' })
+    await user.click(within(form).getByRole('button', { name: 'Cancel' }))
+
+    expect(await screen.findByRole('dialog', { name: 'Asha Rao' })).toBeInTheDocument()
+    expect(api.writes).toHaveLength(0)
   })
 })

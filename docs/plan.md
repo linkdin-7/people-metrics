@@ -20,7 +20,8 @@ employees(id PK, first_name, last_name,
           country CHAR(2),          -- must exist in countries.json
           currency CHAR(3),         -- ISO 4217, stored per employee, must exist in countries.json
           annual_salary INTEGER CHECK > 0,   -- whole units of the employee's currency
-          hire_date, created_at, updated_at)
+          hire_date, created_at, updated_at,
+          deleted_at NULL)          -- soft delete; email is unique among active employees only
 ```
 
 Indexes: department_id, country, currency, annual_salary, (last_name, first_name).
@@ -36,7 +37,8 @@ Indexes: department_id, country, currency, annual_salary, (last_name, first_name
 | GET | `/employees/{id}` | View one employee |
 | PATCH | `/employees/{id}` | Edit part of an employee, for example only the salary |
 | PUT | `/employees/{id}` | Edit by replacing all fields |
-| DELETE | `/employees/{id}` | Delete an employee |
+| DELETE | `/employees/{id}` | Soft delete: hidden everywhere, but the record is kept |
+| POST | `/employees/{id}/restore` | Undo a delete; 409 if an active employee now uses the email |
 | GET | `/departments` | List departments |
 | POST | `/departments` | Create a department; the name is normalized, a duplicate returns 409 |
 | GET | `/lookups` | Countries with default currency, currencies, departments and distinct job titles for forms and filters |

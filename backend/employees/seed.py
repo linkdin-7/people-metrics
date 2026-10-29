@@ -137,7 +137,7 @@ def build_employee(
 def seed_employees(count: int = 10000, seed: int = 42, reset: bool = False) -> int:
     if count < 1:
         raise ValueError("count must be at least 1")
-    existing = Employee.objects.count()
+    existing = Employee.all_objects.count()
     if existing and not reset:
         raise SeedError(
             f"{existing} employees already exist; run with --reset to replace them"
@@ -149,7 +149,7 @@ def seed_employees(count: int = 10000, seed: int = 42, reset: bool = False) -> i
     rng.shuffle(full_names)
     department_names = {department for department, _ in JOB_TITLES.values()}
     with transaction.atomic():
-        Employee.objects.all().delete()
+        Employee.all_objects.all().delete()
         departments = {
             name: Department.objects.get_or_create(name=name)[0]
             for name in sorted(department_names)

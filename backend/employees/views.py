@@ -5,10 +5,13 @@ from django import forms
 from django.db import DatabaseError, IntegrityError, connection
 from django.db.models import Q
 from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from django.views.decorators.http import require_safe
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import mixins, serializers, viewsets
+from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
 from rest_framework.generics import GenericAPIView
 from rest_framework.pagination import PageNumberPagination
@@ -19,6 +22,7 @@ from employees.countries import list_countries, list_currencies
 from employees.insights import salary_distribution, salary_stats, top_earners
 from employees.models import Department, Employee
 from employees.serializers import (
+    Conflict,
     DepartmentSerializer,
     DistributionQuerySerializer,
     DistributionSerializer,
@@ -113,6 +117,20 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         "hire_date",
     ]
     ordering = ["last_name", "first_name"]
+
+    def perform_destroy(self, instance: Employee) -> None:
+        instance.deleted_at = timezone.now()
+        instance.save(update_fields=["deleted_at", "updated_at"])
+
+    @extend_schema(request=None, responses=EmployeeSerializer)
+    @action(detail=True, methods=["post"])
+    def restore(self, request, pk=None) -> Response:
+        employee = get_object_or_404(Employee.all_objects, pk=pk, deleted_at__isnull=False)
+        if Employee.objects.filter(email__iexact=employee.email).exists():
+            raise Conflict("An active employee now uses this email, so this record can't be restored.")
+        employee.deleted_at = None
+        employee.save(update_fields=["deleted_at", "updated_at"])
+        return Response(EmployeeSerializer(employee).data)
 
 
 class DepartmentViewSet(

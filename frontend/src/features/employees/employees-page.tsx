@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { EmployeeSheet } from '@/features/employees/employee-form'
+import { EmployeeSheet, type EmployeePanel } from '@/features/employees/employee-form'
 import { EmployeesTable } from '@/features/employees/employees-table'
 import { api, type Employee } from '@/lib/api'
 import { formatCount } from '@/lib/format'
@@ -142,7 +142,7 @@ export function EmployeesPage() {
     [setParams],
   )
 
-  const [editing, setEditing] = useState<Employee | 'new' | null>(null)
+  const [panel, setPanel] = useState<EmployeePanel | null>(null)
   const urlSearch = params.get('q') ?? ''
   const [search, setSearch] = useState(urlSearch)
 
@@ -192,7 +192,7 @@ export function EmployeesPage() {
               : 'Loading the payroll…'}
           </p>
         </div>
-        <Button onClick={() => setEditing('new')} className="rounded-full shadow-sm shadow-primary/20">
+        <Button onClick={() => setPanel({ mode: 'edit' })} className="rounded-full shadow-sm shadow-primary/20">
           <Plus />
           Add employee
         </Button>
@@ -274,7 +274,7 @@ export function EmployeesPage() {
               countryNames={countryNames}
               sort={params.get('sort')}
               onSort={(sort) => updateParams({ sort })}
-              onEdit={setEditing}
+              onView={(employee: Employee) => setPanel({ mode: 'view', employee })}
               hasFilters={hasFilters}
               onClearFilters={clearFilters}
             />
@@ -332,12 +332,7 @@ export function EmployeesPage() {
         </footer>
       )}
 
-      <EmployeeSheet
-        open={editing !== null}
-        employee={editing === 'new' ? undefined : (editing ?? undefined)}
-        lookups={lookups.data}
-        onClose={() => setEditing(null)}
-      />
+      <EmployeeSheet panel={panel} lookups={lookups.data} onPanelChange={setPanel} />
     </section>
   )
 }
