@@ -10,6 +10,7 @@ from employees.views import (
     EmployeeViewSet,
     LookupsView,
     SummaryView,
+    health,
 )
 
 router = SimpleRouter(trailing_slash=False)
@@ -26,6 +27,7 @@ insights_urls = [
 ]
 
 urlpatterns = [
+    path("health", health),
     path("api/schema", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs", SpectacularSwaggerView.as_view(url_name="schema")),
     path("api/v1/lookups", LookupsView.as_view()),

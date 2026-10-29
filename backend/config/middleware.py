@@ -5,6 +5,8 @@ import hmac
 from django.conf import settings
 from django.http import HttpResponse
 
+EXEMPT_PATHS = {"/health"}
+
 
 def credentials_match(authorization_header: str) -> bool:
     scheme, _, encoded = authorization_header.partition(" ")
@@ -30,7 +32,7 @@ class BasicAuthMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if not settings.BASIC_AUTH_REQUIRED:
+        if not settings.BASIC_AUTH_REQUIRED or request.path in EXEMPT_PATHS:
             return self.get_response(request)
 
         if not (settings.BASIC_AUTH_USERNAME and settings.BASIC_AUTH_PASSWORD):

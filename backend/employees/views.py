@@ -2,8 +2,10 @@ from dataclasses import asdict
 
 import django_filters
 from django import forms
-from django.db import IntegrityError
+from django.db import DatabaseError, IntegrityError, connection
 from django.db.models import Q
+from django.http import JsonResponse
+from django.views.decorators.http import require_safe
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import mixins, serializers, viewsets
@@ -31,6 +33,16 @@ def api_exception_handler(exception, context):
     if isinstance(exception, IntegrityError):
         return Response({"detail": "The change conflicts with existing data."}, status=409)
     return exception_handler(exception, context)
+
+
+@require_safe
+def health(request) -> JsonResponse:
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+    except DatabaseError:
+        return JsonResponse({"status": "unavailable"}, status=503)
+    return JsonResponse({"status": "ok"})
 
 
 class StandardPagination(PageNumberPagination):

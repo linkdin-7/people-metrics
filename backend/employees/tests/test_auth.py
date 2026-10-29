@@ -1,6 +1,7 @@
 import base64
 
 import pytest
+from django.db import OperationalError
 
 PROTECTED_URL = "/api/schema"
 
@@ -94,3 +95,43 @@ def test_authentication_is_required_by_default_outside_debug_mode():
     from config import settings as project_settings
 
     assert project_settings.BASIC_AUTH_REQUIRED == (not project_settings.DEBUG)
+
+
+def test_health_check_needs_no_credentials(api_client, protected, db):
+    response = api_client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
+def test_health_check_works_even_when_credentials_are_not_configured(
+    api_client, settings, db
+):
+    settings.BASIC_AUTH_REQUIRED = True
+    settings.BASIC_AUTH_USERNAME = ""
+    settings.BASIC_AUTH_PASSWORD = ""
+
+    assert api_client.get("/health").status_code == 200
+
+
+def test_health_check_accepts_head_requests(api_client, protected, db):
+    assert api_client.head("/health").status_code == 200
+
+
+def test_health_check_rejects_other_methods(api_client, protected):
+    assert api_client.post("/health").status_code == 405
+
+
+def test_health_check_reports_unavailable_when_the_database_is_down(
+    api_client, protected, monkeypatch
+):
+    class BrokenConnection:
+        def cursor(self):
+            raise OperationalError("database is down")
+
+    monkeypatch.setattr("employees.views.connection", BrokenConnection())
+
+    response = api_client.get("/health")
+
+    assert response.status_code == 503
+    assert response.json() == {"status": "unavailable"}
